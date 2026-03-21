@@ -1,4 +1,5 @@
-// Stub - will be fully implemented in Task 13
+import { useRef } from 'react'
+
 interface DocumentToolbarProps {
   search: string
   onSearchChange: (value: string) => void
@@ -7,6 +8,16 @@ interface DocumentToolbarProps {
 }
 
 export function DocumentToolbar({ search, onSearchChange, onUpload, onSync }: DocumentToolbarProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length) {
+      onUpload(files)
+      e.target.value = ''
+    }
+  }
+
   return (
     <div className="document-toolbar">
       <input
@@ -15,8 +26,23 @@ export function DocumentToolbar({ search, onSearchChange, onUpload, onSync }: Do
         value={search}
         onChange={e => onSearchChange(e.target.value)}
       />
-      <button className="btn btn-primary" onClick={() => onUpload([])}>Upload</button>
-      <button className="btn btn-secondary" onClick={onSync}>Sync</button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+        aria-label="Upload files"
+      />
+      <button
+        className="btn btn-primary"
+        onClick={() => fileInputRef.current?.click()}
+      >
+        Upload
+      </button>
+      <button className="btn btn-secondary" onClick={onSync}>
+        Sync
+      </button>
     </div>
   )
 }
