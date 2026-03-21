@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Manager Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --color-bg: #0D1117; --color-surface: #161B2E; --color-elevated: #1E2A45;
+    --color-border: #2E3F5C; --color-muted: #6B7FA3; --color-text: #C8D3E8;
+    --color-primary: #4A6FA5; --color-secondary: #7B93D4; --color-accent: #F59E0B;
+    --color-success: #10B981; --color-error: #EF4444;
+  }
+  body { font-family: Inter, sans-serif; background: var(--color-bg); color: var(--color-text); padding: 24px; }
+  h1 { font-size: 32px; font-weight: 700; margin-bottom: 24px; }
+  h2 { font-size: 24px; font-weight: 600; margin-bottom: 16px; }
+  h3 { font-size: 18px; font-weight: 600; }
+  .label { font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-muted); }
+
+  .layout { display: grid; grid-template-columns: 240px 1fr 400px; gap: 24px; height: calc(100vh - 120px); }
+
+  /* Sidebar */
+  .sidebar { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .sidebar-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .tag-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: background 200ms ease; }
+  .tag-item:hover { background: var(--color-elevated); }
+  .tag-item.active { background: var(--color-primary); color: white; }
+  .tag-count { font-size: 12px; background: var(--color-elevated); padding: 2px 8px; border-radius: 9999px; color: var(--color-muted); }
+  .tag-item.active .tag-count { background: rgba(255,255,255,0.2); color: white; }
+  .add-tag { padding: 8px 12px; border: 1px dashed var(--color-border); border-radius: 8px; text-align: center; color: var(--color-muted); cursor: pointer; font-size: 14px; margin-top: auto; }
+  .add-tag:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  /* Main content */
+  .main { display: flex; flex-direction: column; gap: 16px; }
+  .toolbar { display: flex; align-items: center; gap: 12px; }
+  .search-input { flex: 1; background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: 4px; padding: 10px 14px; color: var(--color-text); font-size: 14px; outline: none; }
+  .search-input::placeholder { color: var(--color-muted); }
+  .search-input:focus { border-color: var(--color-primary); }
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 200ms ease; }
+  .btn-primary { background: var(--color-primary); color: white; }
+  .btn-primary:hover { background: #5a82b8; }
+  .btn-secondary { background: transparent; border: 1px solid var(--color-border); color: var(--color-text); }
+  .btn-secondary:hover { border-color: var(--color-primary); }
+
+  /* Drop zone */
+  .drop-zone { border: 2px dashed var(--color-border); border-radius: 12px; padding: 32px; text-align: center; color: var(--color-muted); transition: all 200ms ease; }
+  .drop-zone.active { border-color: var(--color-primary); background: rgba(74,111,165,0.1); color: var(--color-primary); }
+  .drop-zone-icon { font-size: 32px; margin-bottom: 8px; }
+  .drop-zone-text { font-size: 14px; }
+  .drop-zone-sub { font-size: 12px; margin-top: 4px; }
+
+  /* File list */
+  .file-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .file-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; transition: all 200ms ease; }
+  .file-item:hover { border-color: var(--color-primary); }
+  .file-item.selected { border-color: var(--color-primary); background: var(--color-elevated); }
+  .file-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .file-icon.pdf { background: #7f1d1d; color: #fca5a5; }
+  .file-icon.docx { background: #1e3a5f; color: #93c5fd; }
+  .file-icon.md { background: #1a3a2a; color: #86efac; }
+  .file-icon.txt { background: #3b3520; color: #fde68a; }
+  .file-icon.csv { background: #2d1b4e; color: #c4b5fd; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
+  .file-tags { display: flex; gap: 4px; flex-shrink: 0; }
+  .tag-badge { font-size: 11px; padding: 2px 8px; border-radius: 9999px; background: rgba(123,147,212,0.15); color: var(--color-secondary); }
+
+  /* Preview panel */
+  .preview { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+  .preview-header { padding: 16px; border-bottom: 1px solid var(--color-border); }
+  .preview-filename { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .preview-meta { font-size: 12px; color: var(--color-muted); }
+  .preview-content { flex: 1; padding: 16px; overflow-y: auto; }
+  .preview-content pre { font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: var(--color-text); }
+  .preview-actions { padding: 12px 16px; border-top: 1px solid var(--color-border); display: flex; gap: 8px; }
+  .preview-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+  .preview-tag { font-size: 12px; padding: 4px 10px; border-radius: 9999px; background: rgba(123,147,212,0.15); color: var(--color-secondary); display: flex; align-items: center; gap: 4px; }
+  .preview-tag .remove { cursor: pointer; opacity: 0.6; }
+  .preview-tag .remove:hover { opacity: 1; }
+  .add-tag-inline { font-size: 12px; padding: 4px 10px; border-radius: 9999px; border: 1px dashed var(--color-border); color: var(--color-muted); cursor: pointer; }
+  .add-tag-inline:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  .status-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 12px; color: var(--color-muted); }
+
+  /* Section label */
+  .section-label { display: inline-block; background: var(--color-accent); color: #0D1117; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 4px; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+  <h1>Document Manager</h1>
+
+  <div class="layout">
+    <!-- Sidebar: Tag Filter -->
+    <div class="sidebar">
+      <div class="section-label">TAG FILTER</div>
+      <div class="sidebar-title">Tags</div>
+      <div class="tag-item active">
+        <span>All Documents</span>
+        <span class="tag-count">7</span>
+      </div>
+      <div class="tag-item">
+        <span>Resume</span>
+        <span class="tag-count">3</span>
+      </div>
+      <div class="tag-item">
+        <span>Cover Letter</span>
+        <span class="tag-count">2</span>
+      </div>
+      <div class="tag-item">
+        <span>CV</span>
+        <span class="tag-count">1</span>
+      </div>
+      <div class="tag-item">
+        <span>Engineering</span>
+        <span class="tag-count">4</span>
+      </div>
+      <div class="tag-item">
+        <span>Management</span>
+        <span class="tag-count">1</span>
+      </div>
+      <div class="add-tag">+ New Tag</div>
+    </div>
+
+    <!-- Main: Search + Upload + File List -->
+    <div class="main">
+      <div class="toolbar">
+        <input class="search-input" placeholder="Search documents..." />
+        <button class="btn btn-primary">Upload</button>
+        <button class="btn btn-secondary">Sync</button>
+      </div>
+
+      <div class="drop-zone">
+        <div class="drop-zone-icon">+</div>
+        <div class="drop-zone-text">Drop files here to upload</div>
+        <div class="drop-zone-sub">PDF, DOCX, TXT, MD, XLSX, CSV, PPTX</div>
+      </div>
+
+      <div class="file-list">
+        <div class="file-item selected">
+          <div class="file-icon md">MD</div>
+          <div class="file-info">
+            <div class="file-name">career-summary.md</div>
+            <div class="file-meta">12 KB &middot; Mar 20, 2026</div>
+          </div>
+          <div class="file-tags">
+            <span class="tag-badge">resume</span>
+            <span class="tag-badge">engineering</span>
+          </div>
+        </div>
+        <div class="file-item">
+          <div class="file-icon pdf">PDF</div>
+          <div class="file-info">
+            <div class="file-name">resume-2026-fullstack.pdf</div>
+            <div class="file-meta">245 KB &middot; Mar 18, 2026</div>
+          </div>
+          <div class="file-tags">
+            <span class="tag-badge">resume</span>
+          </div>
+        </div>
+        <div class="file-item">
+          <div class="file-icon docx">DOCX</div>
+          <div class="file-info">
+            <div class="file-name">cover-letter-acme-corp.docx</div>
+            <div class="file-meta">38 KB &middot; Mar 15, 2026</div>
+          </div>
+          <div class="file-tags">
+            <span class="tag-badge">cover-letter</span>
+            <span class="tag-badge">engineering</span>
+          </div>
+        </div>
+        <div class="file-item">
+          <div class="file-icon txt">TXT</div>
+          <div class="file-info">
+            <div class="file-name">skills-inventory.txt</div>
+            <div class="file-meta">5 KB &middot; Mar 10, 2026</div>
+          </div>
+          <div class="file-tags">
+            <span class="tag-badge">engineering</span>
+          </div>
+        </div>
+        <div class="file-item">
+          <div class="file-icon csv">CSV</div>
+          <div class="file-info">
+            <div class="file-name">certifications.csv</div>
+            <div class="file-meta">2 KB &middot; Mar 8, 2026</div>
+          </div>
+          <div class="file-tags">
+            <span class="tag-badge">cv</span>
+            <span class="tag-badge">engineering</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <span>5 documents &middot; 302 KB total</span>
+        <span>Last synced: just now</span>
+      </div>
+    </div>
+
+    <!-- Preview Panel -->
+    <div class="preview">
+      <div class="preview-header">
+        <div class="section-label">PREVIEW</div>
+        <div class="preview-filename">career-summary.md</div>
+        <div class="preview-meta">Markdown &middot; 12 KB &middot; Uploaded Mar 20, 2026</div>
+        <div class="preview-tags">
+          <span class="preview-tag">resume <span class="remove">&times;</span></span>
+          <span class="preview-tag">engineering <span class="remove">&times;</span></span>
+          <span class="add-tag-inline">+ tag</span>
+        </div>
+      </div>
+      <div class="preview-content">
+        <pre># Career Summary
+
+## Professional Experience
+
+### Senior Full-Stack Engineer — Acme Corp
+*Jan 2023 – Present*
+
+- Led migration of monolithic Rails app to
+  microservices architecture (Node.js + React)
+- Reduced API response times by 60% through
+  query optimization and caching strategies
+- Mentored team of 4 junior developers
+
+### Full-Stack Developer — StartupCo
+*Jun 2020 – Dec 2022*
+
+- Built real-time collaboration features using
+  WebSockets and Redis pub/sub
+- Implemented CI/CD pipeline reducing deploy
+  time from 45min to 8min
+
+## Technical Skills
+
+- Languages: TypeScript, Python, Go, SQL
+- Frontend: React, Next.js, Tailwind CSS
+- Backend: Node.js, FastAPI, PostgreSQL
+- Infrastructure: AWS, Docker, Kubernetes</pre>
+      </div>
+      <div class="preview-actions">
+        <button class="btn btn-primary" style="font-size:13px; padding:8px 16px;">Download</button>
+        <button class="btn btn-secondary" style="font-size:13px; padding:8px 16px;">Open External</button>
+        <button class="btn btn-secondary" style="font-size:13px; padding:8px 16px; margin-left:auto; border-color: var(--color-error); color: var(--color-error);">Delete</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

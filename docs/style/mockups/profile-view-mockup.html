@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile View Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --color-bg: #0D1117; --color-surface: #161B2E; --color-elevated: #1E2A45;
+    --color-border: #2E3F5C; --color-muted: #6B7FA3; --color-text: #C8D3E8;
+    --color-primary: #4A6FA5; --color-secondary: #7B93D4; --color-accent: #F59E0B;
+    --color-success: #10B981; --color-error: #EF4444;
+  }
+  body { font-family: Inter, sans-serif; background: var(--color-bg); color: var(--color-text); padding: 24px; }
+  h1 { font-size: 32px; font-weight: 700; margin-bottom: 24px; }
+  .label { font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 8px; }
+  .section-label { display: inline-block; background: var(--color-accent); color: #0D1117; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 4px; letter-spacing: 0.05em; }
+
+  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 24px; height: calc(100vh - 120px); }
+  .layout.collapsed { grid-template-columns: 1fr 48px; }
+
+  /* Profile Panel */
+  .profile-panel { overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 8px; }
+  .profile-section { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; }
+  .profile-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .profile-section-title { font-size: 18px; font-weight: 600; }
+  .edit-btn { font-size: 12px; padding: 4px 12px; border-radius: 8px; border: 1px solid var(--color-border); background: transparent; color: var(--color-muted); cursor: pointer; }
+  .edit-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  /* Summary */
+  .summary-text { font-size: 14px; line-height: 1.6; color: var(--color-text); }
+
+  /* Skills */
+  .skills-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .skill-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: 9999px; font-size: 13px; }
+  .skill-level { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+  .skill-level.advanced { background: rgba(16,185,129,0.15); color: var(--color-success); }
+  .skill-level.intermediate { background: rgba(245,158,11,0.15); color: var(--color-accent); }
+  .skill-level.expert { background: rgba(123,147,212,0.15); color: var(--color-secondary); }
+  .skill-category { font-size: 10px; color: var(--color-muted); }
+
+  /* Experience */
+  .exp-item { padding: 12px 0; border-bottom: 1px solid var(--color-border); }
+  .exp-item:last-child { border-bottom: none; }
+  .exp-role { font-size: 15px; font-weight: 600; }
+  .exp-company { font-size: 13px; color: var(--color-secondary); }
+  .exp-dates { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
+  .exp-accomplishments { margin-top: 8px; padding-left: 16px; }
+  .exp-accomplishments li { font-size: 13px; line-height: 1.6; margin-bottom: 4px; color: var(--color-text); }
+
+  /* Education & Certs */
+  .edu-item, .cert-item { padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+  .edu-item:last-child, .cert-item:last-child { border-bottom: none; }
+  .edu-degree { font-size: 14px; font-weight: 500; }
+  .edu-school { font-size: 13px; color: var(--color-secondary); }
+  .edu-dates { font-size: 12px; color: var(--color-muted); }
+  .cert-name { font-size: 14px; font-weight: 500; }
+  .cert-meta { font-size: 12px; color: var(--color-muted); }
+
+  /* Objectives */
+  .objectives-text { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+
+  /* Chat Panel */
+  .chat-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .chat-header { padding: 16px; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between; }
+  .chat-title { font-size: 16px; font-weight: 600; }
+  .collapse-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--color-border); background: transparent; color: var(--color-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .collapse-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .message { max-width: 90%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+  .message.assistant { background: var(--color-elevated); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .message.user { background: var(--color-primary); align-self: flex-end; border-bottom-right-radius: 4px; }
+
+  /* Suggestion Card */
+  .suggestion-card { background: var(--color-elevated); border: 1px solid var(--color-accent); border-radius: 12px; padding: 16px; align-self: flex-start; max-width: 90%; }
+  .suggestion-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-accent); margin-bottom: 8px; }
+  .suggestion-section { font-size: 12px; color: var(--color-muted); margin-bottom: 4px; }
+  .suggestion-content { font-size: 13px; line-height: 1.5; margin-bottom: 12px; }
+  .suggestion-actions { display: flex; gap: 8px; }
+  .suggestion-actions .btn { padding: 6px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: 500; }
+  .btn-accept { background: var(--color-success); color: white; }
+  .btn-accept:hover { opacity: 0.9; }
+  .btn-reject { background: transparent; border: 1px solid var(--color-border) !important; color: var(--color-muted); }
+  .btn-reject:hover { border-color: var(--color-error) !important; color: var(--color-error); }
+
+  .chat-input-area { padding: 16px; border-top: 1px solid var(--color-border); display: flex; gap: 8px; }
+  .chat-input { flex: 1; background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: 8px; padding: 10px 14px; color: var(--color-text); font-size: 14px; outline: none; font-family: Inter, sans-serif; resize: none; }
+  .chat-input::placeholder { color: var(--color-muted); }
+  .chat-input:focus { border-color: var(--color-primary); }
+  .send-btn { padding: 10px 20px; border-radius: 8px; border: none; background: var(--color-primary); color: white; cursor: pointer; font-size: 14px; font-weight: 500; }
+  .send-btn:hover { background: #5a82b8; }
+
+  /* Collapsed state */
+  .chat-collapsed { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; display: flex; flex-direction: column; align-items: center; padding-top: 16px; cursor: pointer; }
+  .chat-collapsed:hover { border-color: var(--color-primary); }
+  .chat-collapsed .expand-icon { font-size: 20px; color: var(--color-muted); writing-mode: vertical-rl; font-size: 13px; font-weight: 500; letter-spacing: 0.05em; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <h1>Profile</h1>
+
+  <div class="layout">
+    <!-- Profile Panel -->
+    <div class="profile-panel">
+      <!-- Summary -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <div class="profile-section-title">Summary</div>
+          <button class="edit-btn">Edit</button>
+        </div>
+        <div class="summary-text">Senior full-stack engineer with 6 years of experience building scalable web applications. Passionate about developer experience, clean architecture, and mentoring junior engineers. Experienced in leading migrations from monolithic to microservices architectures.</div>
+      </div>
+
+      <!-- Skills -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <div class="profile-section-title">Skills</div>
+          <button class="edit-btn">Edit</button>
+        </div>
+        <div class="skills-grid">
+          <div class="skill-chip"><span>TypeScript</span><span class="skill-level expert">Expert</span></div>
+          <div class="skill-chip"><span>React</span><span class="skill-level advanced">Advanced</span></div>
+          <div class="skill-chip"><span>Python</span><span class="skill-level advanced">Advanced</span></div>
+          <div class="skill-chip"><span>Node.js</span><span class="skill-level advanced">Advanced</span></div>
+          <div class="skill-chip"><span>PostgreSQL</span><span class="skill-level intermediate">Intermediate</span></div>
+          <div class="skill-chip"><span>Docker</span><span class="skill-level intermediate">Intermediate</span></div>
+          <div class="skill-chip"><span>AWS</span><span class="skill-level intermediate">Intermediate</span></div>
+          <div class="skill-chip"><span>Leadership</span><span class="skill-level advanced">Advanced</span><span class="skill-category">soft</span></div>
+          <div class="skill-chip"><span>Mentoring</span><span class="skill-level intermediate">Intermediate</span><span class="skill-category">soft</span></div>
+        </div>
+      </div>
+
+      <!-- Experience -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <div class="profile-section-title">Experience</div>
+          <button class="edit-btn">Edit</button>
+        </div>
+        <div class="exp-item">
+          <div class="exp-role">Senior Full-Stack Engineer</div>
+          <div class="exp-company">Acme Corp</div>
+          <div class="exp-dates">Jan 2023 — Present</div>
+          <ul class="exp-accomplishments">
+            <li>Led migration of monolithic Rails app to microservices (Node.js + React)</li>
+            <li>Reduced API response times by 60% through query optimization and caching</li>
+            <li>Mentored team of 4 junior developers</li>
+          </ul>
+        </div>
+        <div class="exp-item">
+          <div class="exp-role">Full-Stack Developer</div>
+          <div class="exp-company">StartupCo</div>
+          <div class="exp-dates">Jun 2020 — Dec 2022</div>
+          <ul class="exp-accomplishments">
+            <li>Built real-time collaboration features using WebSockets and Redis</li>
+            <li>Implemented CI/CD pipeline reducing deploy time from 45min to 8min</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Education -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <div class="profile-section-title">Education</div>
+          <button class="edit-btn">Edit</button>
+        </div>
+        <div class="edu-item">
+          <div class="edu-degree">B.S. Computer Science</div>
+          <div class="edu-school">State University</div>
+          <div class="edu-dates">Aug 2015 — May 2019</div>
+        </div>
+      </div>
+
+      <!-- Certifications -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <div class="profile-section-title">Certifications</div>
+          <button class="edit-btn">Edit</button>
+        </div>
+        <div class="cert-item">
+          <div class="cert-name">AWS Solutions Architect — Associate</div>
+          <div class="cert-meta">Amazon Web Services &middot; Jun 2024</div>
+        </div>
+      </div>
+
+      <!-- Objectives -->
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <div class="profile-section-title">Objectives</div>
+          <button class="edit-btn">Edit</button>
+        </div>
+        <div class="objectives-text">Looking for senior or staff-level engineering roles at mid-size companies (50-500 employees) where I can have a direct impact on product direction. Interested in platform engineering, developer tools, and infrastructure. Open to remote or hybrid in the Pacific Northwest.</div>
+      </div>
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="chat-panel">
+      <div class="chat-header">
+        <div>
+          <div class="section-label">INTERVIEW</div>
+          <div class="chat-title">Profile Builder</div>
+        </div>
+        <button class="collapse-btn" title="Collapse chat">&laquo;</button>
+      </div>
+
+      <div class="chat-messages">
+        <div class="message assistant">I've reviewed your documents. I can see you have strong experience with full-stack development and a recent focus on microservices. Let me ask you some targeted questions to flesh out your profile.</div>
+
+        <div class="message assistant">I noticed your resume mentions leading a migration at Acme Corp. Can you tell me more about the scale of that project? How many services did you break the monolith into, and how large was the team?</div>
+
+        <div class="message user">We broke it into 12 microservices over about 8 months. I led a team of 6 engineers, 4 of whom were junior devs I was also mentoring.</div>
+
+        <div class="message assistant">That's great context — leading 6 engineers through a complex migration shows both technical depth and leadership. Let me suggest an update to your experience.</div>
+
+        <!-- Suggestion Card -->
+        <div class="suggestion-card">
+          <div class="suggestion-label">Suggested Update</div>
+          <div class="suggestion-section">Experience &rarr; Acme Corp &rarr; Accomplishments</div>
+          <div class="suggestion-content">
+            <strong>Replace:</strong> "Led migration of monolithic Rails app to microservices (Node.js + React)"<br><br>
+            <strong>With:</strong> "Led a team of 6 engineers in decomposing a monolithic Rails application into 12 microservices over 8 months, mentoring 4 junior developers throughout the process"
+          </div>
+          <div class="suggestion-actions">
+            <button class="btn btn-accept">Accept</button>
+            <button class="btn btn-reject">Reject</button>
+          </div>
+        </div>
+
+        <div class="message assistant">Based on your skills, I'm curious — you list PostgreSQL as intermediate. Have you worked with database design at scale, or has it been more application-level queries? This distinction matters for how we position you for platform engineering roles.</div>
+      </div>
+
+      <div class="chat-input-area">
+        <input class="chat-input" placeholder="Type your response..." />
+        <button class="send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
