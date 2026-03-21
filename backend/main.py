@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config import DOCUMENTS_DIR, DATA_DIR
 from backend.routers.documents import router as documents_router
+from backend.routers.tags import router as tags_router
 
 app = FastAPI(title="hAId-hunter API")
 
@@ -15,6 +16,7 @@ app.add_middleware(
 
 
 app.include_router(documents_router)
+app.include_router(tags_router)
 
 
 @app.on_event("startup")
