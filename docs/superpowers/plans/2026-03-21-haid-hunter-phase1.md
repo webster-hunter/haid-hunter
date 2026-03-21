@@ -6,7 +6,7 @@
 
 **Architecture:** Single React SPA (Vite + TypeScript + React Router) with lazy-loaded routes. FastAPI Python backend serving REST endpoints. Documents stored on local filesystem with JSON metadata. Profile stored as JSON. Applications stored in SQLite. All features share one backend server with CORS for the Vite dev server.
 
-**Tech Stack:** React 19, TypeScript 5.9, Vite 8, React Router, Vitest + React Testing Library (frontend tests), FastAPI, pytest + httpx (backend tests), SQLite (via aiosqlite), cryptography (Fernet encryption), python-multipart (file uploads), Anthropic Python SDK (Claude API).
+**Tech Stack:** React 19, TypeScript 5.9, Vite 8, React Router, Vitest + React Testing Library (frontend tests), FastAPI, pytest + httpx (backend tests), SQLite (via sqlite3), cryptography (Fernet encryption), python-multipart (file uploads), Anthropic Python SDK (Claude API).
 
 **Specs:**
 - `docs/superpowers/specs/2026-03-21-document-manager-design.md`
@@ -182,7 +182,6 @@ pytest==8.3.5
 pytest-asyncio==0.25.3
 anthropic==0.52.0
 cryptography==44.0.3
-aiosqlite==0.21.0
 python-dotenv==1.1.0
 ```
 
@@ -3298,11 +3297,34 @@ async def accept_suggestion(body: SuggestionRequest):
     profile = service.get()
     section = suggestion["section"]
     action = suggestion["action"]
+    target = suggestion.get("target", {})
 
     if action == "add" and isinstance(profile.get(section), list):
         profile[section].append(suggestion["proposed"])
-    elif action == "update" and section in ("summary", "objectives"):
-        profile[section] = suggestion["proposed"]
+    elif action == "update":
+        if section in ("summary", "objectives"):
+            profile[section] = suggestion["proposed"]
+        elif isinstance(profile.get(section), list):
+            # Update a specific item in a list section (e.g., experience, skills)
+            index = target.get("index")
+            field = target.get("field")
+            if index is not None and 0 <= index < len(profile[section]):
+                if field:
+                    # Update a specific field within an item (e.g., accomplishments[0])
+                    item = profile[section][index]
+                    if isinstance(item, dict) and field in item:
+                        sub_index = target.get("sub_index")
+                        if sub_index is not None and isinstance(item[field], list):
+                            item[field][sub_index] = suggestion["proposed"]
+                        else:
+                            item[field] = suggestion["proposed"]
+                else:
+                    # Replace the entire item at index
+                    profile[section][index] = suggestion["proposed"]
+    elif action == "remove" and isinstance(profile.get(section), list):
+        index = target.get("index")
+        if index is not None and 0 <= index < len(profile[section]):
+            profile[section].pop(index)
 
     service.put(profile)
     return {"status": "accepted", "profile": profile}
@@ -3474,37 +3496,478 @@ describe('ProfileView', () => {
 Run: `npm test -- src/__tests__/profile/ProfileView.test.tsx`
 Expected: FAIL
 
-- [ ] **Step 4: Implement ProfileView, ProfilePanel, ProfileSection, and InterviewChat stubs**
+- [ ] **Step 4: Implement ProfileView (top-level layout)**
 
-These are substantial components. Implement them following the patterns from the Document Manager — the full code is in the spec mockup. Key structure:
+```tsx
+// src/components/profile/ProfileView.tsx
+import { useState, useEffect } from 'react'
+import { fetchProfile, type Profile } from '../../api/profile'
+import ProfilePanel from './ProfilePanel'
+import InterviewChat from './InterviewChat'
 
-`src/components/profile/ProfileView.tsx` — split-pane layout with collapsible chat
-`src/components/profile/ProfilePanel.tsx` — renders all profile sections
-`src/components/profile/ProfileSection.tsx` — section wrapper with edit toggle
-`src/components/profile/SkillChips.tsx` — skill display
-`src/components/profile/ExperienceList.tsx` — experience display
-`src/components/profile/EducationList.tsx` — education display
-`src/components/profile/CertificationList.tsx` — certification display
-`src/components/profile/SectionEditor.tsx` — inline editor per section type
-`src/components/profile/InterviewChat.tsx` — chat panel
-`src/components/profile/ChatMessage.tsx` — message bubble
-`src/components/profile/SuggestionCard.tsx` — suggestion with accept/reject
+export default function ProfileView() {
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [chatCollapsed, setChatCollapsed] = useState(false)
 
-Each component follows the same TDD pattern:
-1. Write a test for the component's key behavior
-2. Verify the test fails
-3. Implement the minimal component
-4. Verify the test passes
-5. Commit
+  useEffect(() => {
+    fetchProfile().then(setProfile)
+  }, [])
 
-Due to the number of components, implement them iteratively following TDD. The key behaviors to test for each:
+  const handleProfileUpdate = () => {
+    fetchProfile().then(setProfile)
+  }
 
-- **ProfilePanel**: renders section titles (Summary, Skills, Experience, Education, Certifications, Objectives)
-- **SkillChips**: renders skill names with proficiency badges
-- **ExperienceList**: renders company, role, dates, accomplishments
-- **InterviewChat**: renders messages, has input field, send button
-- **SuggestionCard**: shows proposed change, has Accept/Reject buttons
-- **SectionEditor**: shows form fields appropriate to the section type
+  return (
+    <div className="profile-view">
+      <h1>Profile</h1>
+      <div className="profile-layout">
+        <div className="profile-main" data-testid="profile-panel">
+          {profile && <ProfilePanel profile={profile} onUpdate={handleProfileUpdate} />}
+        </div>
+        <div className={`profile-chat ${chatCollapsed ? 'collapsed' : ''}`} data-testid="interview-chat">
+          <button className="chat-toggle" onClick={() => setChatCollapsed(!chatCollapsed)}>
+            {chatCollapsed ? '◀' : '▶'}
+          </button>
+          {!chatCollapsed && <InterviewChat onProfileUpdate={handleProfileUpdate} />}
+        </div>
+      </div>
+    </div>
+  )
+}
+```
+
+- [ ] **Step 5: Implement ProfilePanel and ProfileSection**
+
+```tsx
+// src/components/profile/ProfileSection.tsx
+import { useState, type ReactNode } from 'react'
+
+interface Props {
+  title: string
+  children: ReactNode
+  editor?: ReactNode
+}
+
+export default function ProfileSection({ title, children, editor }: Props) {
+  const [editing, setEditing] = useState(false)
+
+  return (
+    <div className="profile-section">
+      <div className="section-header">
+        <h3>{title}</h3>
+        <button onClick={() => setEditing(!editing)}>{editing ? 'Cancel' : 'Edit'}</button>
+      </div>
+      {editing ? editor : children}
+    </div>
+  )
+}
+```
+
+```tsx
+// src/components/profile/ProfilePanel.tsx
+import type { Profile } from '../../api/profile'
+import ProfileSection from './ProfileSection'
+import SkillChips from './SkillChips'
+import ExperienceList from './ExperienceList'
+import EducationList from './EducationList'
+import CertificationList from './CertificationList'
+
+interface Props {
+  profile: Profile
+  onUpdate: () => void
+}
+
+export default function ProfilePanel({ profile, onUpdate }: Props) {
+  return (
+    <div className="profile-panel-inner">
+      <ProfileSection title="Summary">
+        <p>{profile.summary || 'No summary yet.'}</p>
+      </ProfileSection>
+      <ProfileSection title="Skills">
+        <SkillChips skills={profile.skills} />
+      </ProfileSection>
+      <ProfileSection title="Experience">
+        <ExperienceList experience={profile.experience} />
+      </ProfileSection>
+      <ProfileSection title="Education">
+        <EducationList education={profile.education} />
+      </ProfileSection>
+      <ProfileSection title="Certifications">
+        <CertificationList certifications={profile.certifications} />
+      </ProfileSection>
+      <ProfileSection title="Objectives">
+        <p>{profile.objectives || 'No objectives yet.'}</p>
+      </ProfileSection>
+    </div>
+  )
+}
+```
+
+- [ ] **Step 6: Implement display components (SkillChips, ExperienceList, EducationList, CertificationList)**
+
+```tsx
+// src/components/profile/SkillChips.tsx
+import type { Skill } from '../../api/profile'
+
+const PROFICIENCY_CLASSES: Record<string, string> = {
+  beginner: 'badge-muted',
+  intermediate: 'badge-accent',
+  advanced: 'badge-success',
+  expert: 'badge-secondary',
+}
+
+export default function SkillChips({ skills }: { skills: Skill[] }) {
+  if (skills.length === 0) return <p>No skills added yet.</p>
+  return (
+    <div className="skill-chips">
+      {skills.map((s, i) => (
+        <span key={i} className="skill-chip">
+          {s.name}
+          <span className={`proficiency-badge ${PROFICIENCY_CLASSES[s.proficiency] || ''}`}>
+            {s.proficiency}
+          </span>
+        </span>
+      ))}
+    </div>
+  )
+}
+```
+
+```tsx
+// src/components/profile/ExperienceList.tsx
+import type { Experience } from '../../api/profile'
+
+export default function ExperienceList({ experience }: { experience: Experience[] }) {
+  if (experience.length === 0) return <p>No experience added yet.</p>
+  return (
+    <div className="experience-list">
+      {experience.map((e, i) => (
+        <div key={i} className="experience-item">
+          <div className="experience-header">
+            <strong>{e.role}</strong> at {e.company}
+            <span className="experience-dates">{e.start_date} — {e.end_date || 'Present'}</span>
+          </div>
+          {e.accomplishments.length > 0 && (
+            <ul>{e.accomplishments.map((a, j) => <li key={j}>{a}</li>)}</ul>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+```tsx
+// src/components/profile/EducationList.tsx
+import type { Education } from '../../api/profile'
+
+export default function EducationList({ education }: { education: Education[] }) {
+  if (education.length === 0) return <p>No education added yet.</p>
+  return (
+    <div className="education-list">
+      {education.map((e, i) => (
+        <div key={i} className="education-item">
+          <strong>{e.degree}</strong> — {e.institution}
+          <span className="education-dates">{e.start_date} — {e.end_date}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+```tsx
+// src/components/profile/CertificationList.tsx
+import type { Certification } from '../../api/profile'
+
+export default function CertificationList({ certifications }: { certifications: Certification[] }) {
+  if (certifications.length === 0) return <p>No certifications added yet.</p>
+  return (
+    <div className="certification-list">
+      {certifications.map((c, i) => (
+        <div key={i} className="certification-item">
+          <strong>{c.name}</strong> — {c.issuer} ({c.date})
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+- [ ] **Step 7: Implement InterviewChat, ChatMessage, and SuggestionCard**
+
+```tsx
+// src/components/profile/ChatMessage.tsx
+interface Props {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export default function ChatMessage({ role, content }: Props) {
+  return <div className={`chat-message ${role}`}>{content}</div>
+}
+```
+
+```tsx
+// src/components/profile/SuggestionCard.tsx
+import type { Suggestion } from '../../api/interview'
+
+interface Props {
+  suggestion: Suggestion
+  onAccept: (id: string) => void
+  onReject: (id: string) => void
+}
+
+export default function SuggestionCard({ suggestion, onAccept, onReject }: Props) {
+  return (
+    <div className="suggestion-card">
+      <div className="suggestion-header">
+        Suggested {suggestion.action} for <strong>{suggestion.section}</strong>
+      </div>
+      {suggestion.original && (
+        <div className="suggestion-original">
+          <label>Current:</label>
+          <p>{typeof suggestion.original === 'string' ? suggestion.original : JSON.stringify(suggestion.original)}</p>
+        </div>
+      )}
+      {suggestion.proposed && (
+        <div className="suggestion-proposed">
+          <label>Proposed:</label>
+          <p>{typeof suggestion.proposed === 'string' ? suggestion.proposed : JSON.stringify(suggestion.proposed)}</p>
+        </div>
+      )}
+      <div className="suggestion-actions">
+        <button className="btn-accept" onClick={() => onAccept(suggestion.suggestion_id)}>Accept</button>
+        <button className="btn-reject" onClick={() => onReject(suggestion.suggestion_id)}>Reject</button>
+      </div>
+    </div>
+  )
+}
+```
+
+```tsx
+// src/components/profile/InterviewChat.tsx
+import { useState, useRef, useEffect } from 'react'
+import { startInterview, sendMessage, acceptSuggestion, rejectSuggestion, type Suggestion } from '../../api/interview'
+import ChatMessage from './ChatMessage'
+import SuggestionCard from './SuggestionCard'
+
+interface ChatEntry {
+  role: 'user' | 'assistant'
+  content: string
+  suggestion?: Suggestion | null
+}
+
+interface Props {
+  onProfileUpdate: () => void
+}
+
+export default function InterviewChat({ onProfileUpdate }: Props) {
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<ChatEntry[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleStart = async () => {
+    setLoading(true)
+    const { session_id, message } = await startInterview()
+    setSessionId(session_id)
+    setMessages([{ role: 'assistant', content: message }])
+    setLoading(false)
+  }
+
+  const handleSend = async () => {
+    if (!sessionId || !input.trim()) return
+    const userMsg = input.trim()
+    setInput('')
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }])
+    setLoading(true)
+    const result = await sendMessage(sessionId, userMsg)
+    setMessages(prev => [...prev, { role: 'assistant', content: result.message, suggestion: result.suggestion }])
+    setLoading(false)
+  }
+
+  const handleAccept = async (suggestionId: string) => {
+    if (!sessionId) return
+    await acceptSuggestion(sessionId, suggestionId)
+    onProfileUpdate()
+  }
+
+  const handleReject = async (suggestionId: string) => {
+    if (!sessionId) return
+    await rejectSuggestion(sessionId, suggestionId)
+  }
+
+  return (
+    <div className="interview-chat-inner">
+      <h3>Interview</h3>
+      <div className="chat-messages">
+        {messages.map((m, i) => (
+          <div key={i}>
+            <ChatMessage role={m.role} content={m.content} />
+            {m.suggestion && (
+              <SuggestionCard suggestion={m.suggestion} onAccept={handleAccept} onReject={handleReject} />
+            )}
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+      {!sessionId ? (
+        <button onClick={handleStart} disabled={loading}>Start Interview</button>
+      ) : (
+        <div className="chat-input">
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Type a message..." />
+          <button onClick={handleSend} disabled={loading || !input.trim()}>Send</button>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+- [ ] **Step 8: Implement SectionEditor**
+
+```tsx
+// src/components/profile/SectionEditor.tsx
+import { useState } from 'react'
+import { patchSection } from '../../api/profile'
+import type { Profile, Skill, Experience, Education, Certification } from '../../api/profile'
+
+interface Props {
+  section: string
+  data: unknown
+  onSave: () => void
+  onCancel: () => void
+}
+
+export default function SectionEditor({ section, data, onSave, onCancel }: Props) {
+  const [value, setValue] = useState(() => JSON.parse(JSON.stringify(data)))
+
+  const handleSave = async () => {
+    await patchSection(section, value)
+    onSave()
+  }
+
+  if (section === 'summary' || section === 'objectives') {
+    return (
+      <div className="section-editor">
+        <textarea value={value as string} onChange={e => setValue(e.target.value)} rows={4} />
+        <div className="editor-actions">
+          <button onClick={handleSave}>Save</button>
+          <button onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (section === 'skills') {
+    const skills = value as Skill[]
+    return (
+      <div className="section-editor">
+        {skills.map((s, i) => (
+          <div key={i} className="editor-row">
+            <input value={s.name} onChange={e => { skills[i] = { ...s, name: e.target.value }; setValue([...skills]) }} placeholder="Skill name" />
+            <select value={s.proficiency} onChange={e => { skills[i] = { ...s, proficiency: e.target.value }; setValue([...skills]) }}>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+              <option value="expert">Expert</option>
+            </select>
+            <select value={s.category} onChange={e => { skills[i] = { ...s, category: e.target.value }; setValue([...skills]) }}>
+              <option value="technical">Technical</option>
+              <option value="soft">Soft</option>
+            </select>
+            <button onClick={() => setValue(skills.filter((_, j) => j !== i))}>Remove</button>
+          </div>
+        ))}
+        <button onClick={() => setValue([...skills, { name: '', proficiency: 'beginner', category: 'technical' }])}>+ Add Skill</button>
+        <div className="editor-actions">
+          <button onClick={handleSave}>Save</button>
+          <button onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (section === 'experience') {
+    const items = value as Experience[]
+    return (
+      <div className="section-editor">
+        {items.map((item, i) => (
+          <div key={i} className="editor-group">
+            <input value={item.company} onChange={e => { items[i] = { ...item, company: e.target.value }; setValue([...items]) }} placeholder="Company" />
+            <input value={item.role} onChange={e => { items[i] = { ...item, role: e.target.value }; setValue([...items]) }} placeholder="Role" />
+            <input value={item.start_date} onChange={e => { items[i] = { ...item, start_date: e.target.value }; setValue([...items]) }} placeholder="Start (YYYY-MM)" />
+            <input value={item.end_date || ''} onChange={e => { items[i] = { ...item, end_date: e.target.value || null }; setValue([...items]) }} placeholder="End (YYYY-MM or blank)" />
+            {item.accomplishments.map((a, j) => (
+              <div key={j} className="accomplishment-row">
+                <input value={a} onChange={e => { item.accomplishments[j] = e.target.value; setValue([...items]) }} placeholder="Accomplishment" />
+                <button onClick={() => { item.accomplishments.splice(j, 1); setValue([...items]) }}>×</button>
+              </div>
+            ))}
+            <button onClick={() => { item.accomplishments.push(''); setValue([...items]) }}>+ Accomplishment</button>
+            <button onClick={() => setValue(items.filter((_, j) => j !== i))}>Remove Entry</button>
+          </div>
+        ))}
+        <button onClick={() => setValue([...items, { company: '', role: '', start_date: '', end_date: null, accomplishments: [] }])}>+ Add Experience</button>
+        <div className="editor-actions">
+          <button onClick={handleSave}>Save</button>
+          <button onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (section === 'education') {
+    const items = value as Education[]
+    return (
+      <div className="section-editor">
+        {items.map((item, i) => (
+          <div key={i} className="editor-group">
+            <input value={item.institution} onChange={e => { items[i] = { ...item, institution: e.target.value }; setValue([...items]) }} placeholder="Institution" />
+            <input value={item.degree} onChange={e => { items[i] = { ...item, degree: e.target.value }; setValue([...items]) }} placeholder="Degree" />
+            <input value={item.start_date} onChange={e => { items[i] = { ...item, start_date: e.target.value }; setValue([...items]) }} placeholder="Start (YYYY-MM)" />
+            <input value={item.end_date} onChange={e => { items[i] = { ...item, end_date: e.target.value }; setValue([...items]) }} placeholder="End (YYYY-MM)" />
+            <button onClick={() => setValue(items.filter((_, j) => j !== i))}>Remove</button>
+          </div>
+        ))}
+        <button onClick={() => setValue([...items, { institution: '', degree: '', start_date: '', end_date: '' }])}>+ Add Education</button>
+        <div className="editor-actions">
+          <button onClick={handleSave}>Save</button>
+          <button onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+
+  if (section === 'certifications') {
+    const items = value as Certification[]
+    return (
+      <div className="section-editor">
+        {items.map((item, i) => (
+          <div key={i} className="editor-group">
+            <input value={item.name} onChange={e => { items[i] = { ...item, name: e.target.value }; setValue([...items]) }} placeholder="Certification name" />
+            <input value={item.issuer} onChange={e => { items[i] = { ...item, issuer: e.target.value }; setValue([...items]) }} placeholder="Issuer" />
+            <input value={item.date} onChange={e => { items[i] = { ...item, date: e.target.value }; setValue([...items]) }} placeholder="Date (YYYY-MM)" />
+            <button onClick={() => setValue(items.filter((_, j) => j !== i))}>Remove</button>
+          </div>
+        ))}
+        <button onClick={() => setValue([...items, { name: '', issuer: '', date: '' }])}>+ Add Certification</button>
+        <div className="editor-actions">
+          <button onClick={handleSave}>Save</button>
+          <button onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+
+  return null
+}
 
 - [ ] **Step 5: Add CSS for profile view**
 
@@ -4231,6 +4694,12 @@ export async function linkDocument(appId: number, documentId: string, role?: str
   return res.json()
 }
 
+export async function fetchLinkedDocuments(appId: number): Promise<LinkedDocument[]> {
+  const res = await fetch(`/api/applications/${appId}/documents`)
+  if (!res.ok) throw new Error('Failed to fetch linked documents')
+  return res.json()
+}
+
 export async function unlinkDocument(appId: number, linkId: number): Promise<void> {
   const res = await fetch(`/api/applications/${appId}/documents/${linkId}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Failed to unlink document')
@@ -4273,27 +4742,470 @@ describe('ApplicationManager', () => {
 Run: `npm test -- src/__tests__/applications/ApplicationManager.test.tsx`
 Expected: FAIL
 
-- [ ] **Step 4: Implement ApplicationManager and child components**
+- [ ] **Step 4: Implement ApplicationManager and ApplicationToolbar**
 
-Follow the same TDD pattern as Document Manager. Key components:
+```tsx
+// src/components/applications/ApplicationToolbar.tsx
+interface Props {
+  search: string
+  onSearchChange: (value: string) => void
+  statusFilter: string
+  onStatusFilterChange: (value: string) => void
+  viewMode: 'table' | 'kanban'
+  onViewModeChange: (mode: 'table' | 'kanban') => void
+  onAdd: () => void
+}
 
-`src/components/applications/ApplicationManager.tsx` — top-level with view toggle state
-`src/components/applications/ApplicationToolbar.tsx` — search, filter, add button, view toggle
-`src/components/applications/TableView.tsx` — sortable table
-`src/components/applications/KanbanView.tsx` — 5-column kanban with drag-and-drop
-`src/components/applications/KanbanColumn.tsx` — single column
-`src/components/applications/KanbanCard.tsx` — draggable card
-`src/components/applications/ApplicationModal.tsx` — add/edit form
-`src/components/applications/DocumentLinker.tsx` — link/unlink documents
-`src/components/applications/DocumentPicker.tsx` — document selection
+export default function ApplicationToolbar({ search, onSearchChange, statusFilter, onStatusFilterChange, viewMode, onViewModeChange, onAdd }: Props) {
+  return (
+    <div className="application-toolbar">
+      <input type="text" value={search} onChange={e => onSearchChange(e.target.value)} placeholder="Search applications..." className="search-input" />
+      <select value={statusFilter} onChange={e => onStatusFilterChange(e.target.value)}>
+        <option value="">All Statuses</option>
+        <option value="bookmarked">Bookmarked</option>
+        <option value="applied">Applied</option>
+        <option value="in_progress">In Progress</option>
+        <option value="offer">Offer</option>
+        <option value="closed">Closed</option>
+      </select>
+      <div className="view-toggle">
+        <button className={viewMode === 'table' ? 'active' : ''} onClick={() => onViewModeChange('table')}>Table</button>
+        <button className={viewMode === 'kanban' ? 'active' : ''} onClick={() => onViewModeChange('kanban')}>Kanban</button>
+      </div>
+      <button className="btn-primary" onClick={onAdd}>+ Add Application</button>
+    </div>
+  )
+}
+```
 
-Each component follows TDD: write test → verify fail → implement → verify pass → commit.
+```tsx
+// src/components/applications/ApplicationManager.tsx
+import { useState, useEffect, useCallback } from 'react'
+import { fetchApplications, type Application } from '../../api/applications'
+import ApplicationToolbar from './ApplicationToolbar'
+import TableView from './TableView'
+import KanbanView from './KanbanView'
+import ApplicationModal from './ApplicationModal'
 
-Key behaviors to test:
-- **TableView**: renders rows, columns are sortable, row click fires callback
-- **KanbanView**: renders 5 status columns, cards appear in correct column
-- **ApplicationModal**: form fields render, submit calls API, validation works
-- **DocumentLinker**: shows linked docs, can add/remove
+export default function ApplicationManager() {
+  const [applications, setApplications] = useState<Application[]>([])
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingApp, setEditingApp] = useState<Application | null>(null)
+
+  const loadApps = useCallback(async () => {
+    const apps = await fetchApplications({ search: search || undefined, status: statusFilter || undefined })
+    setApplications(apps)
+  }, [search, statusFilter])
+
+  useEffect(() => { loadApps() }, [loadApps])
+
+  const handleEdit = (app: Application) => { setEditingApp(app); setModalOpen(true) }
+  const handleAdd = () => { setEditingApp(null); setModalOpen(true) }
+  const handleModalClose = () => { setModalOpen(false); setEditingApp(null); loadApps() }
+
+  return (
+    <div className="application-manager">
+      <h1>Applications</h1>
+      <ApplicationToolbar search={search} onSearchChange={setSearch} statusFilter={statusFilter} onStatusFilterChange={setStatusFilter} viewMode={viewMode} onViewModeChange={setViewMode} onAdd={handleAdd} />
+      {viewMode === 'table' ? (
+        <TableView applications={applications} onRowClick={handleEdit} />
+      ) : (
+        <KanbanView applications={applications} onCardClick={handleEdit} onRefresh={loadApps} />
+      )}
+      {modalOpen && <ApplicationModal application={editingApp} onClose={handleModalClose} />}
+    </div>
+  )
+}
+```
+
+- [ ] **Step 5: Implement TableView**
+
+```tsx
+// src/components/applications/TableView.tsx
+import { useState } from 'react'
+import type { Application } from '../../api/applications'
+import StatusBadge from './StatusBadge'
+
+interface Props {
+  applications: Application[]
+  onRowClick: (app: Application) => void
+}
+
+type SortKey = 'company' | 'position' | 'status' | 'created_at'
+
+export default function TableView({ applications, onRowClick }: Props) {
+  const [sortKey, setSortKey] = useState<SortKey>('created_at')
+  const [sortAsc, setSortAsc] = useState(false)
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortAsc(!sortAsc)
+    else { setSortKey(key); setSortAsc(true) }
+  }
+
+  const sorted = [...applications].sort((a, b) => {
+    const av = a[sortKey] ?? ''
+    const bv = b[sortKey] ?? ''
+    const cmp = String(av).localeCompare(String(bv))
+    return sortAsc ? cmp : -cmp
+  })
+
+  return (
+    <table className="application-table">
+      <thead>
+        <tr>
+          <th onClick={() => handleSort('company')}>Company</th>
+          <th onClick={() => handleSort('position')}>Position</th>
+          <th onClick={() => handleSort('status')}>Status</th>
+          <th>Referral</th>
+          <th>Docs</th>
+          <th onClick={() => handleSort('created_at')}>Applied</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map(app => (
+          <tr key={app.id} onClick={() => onRowClick(app)}>
+            <td>{app.company}</td>
+            <td>{app.position}</td>
+            <td><StatusBadge status={app.status} /></td>
+            <td>{app.referral_name || '—'}</td>
+            <td>{app.doc_count ?? 0}</td>
+            <td>{new Date(app.created_at).toLocaleDateString()}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+```
+
+```tsx
+// src/components/applications/StatusBadge.tsx
+const STATUS_CLASSES: Record<string, string> = {
+  bookmarked: 'status-muted',
+  applied: 'status-primary',
+  in_progress: 'status-accent',
+  offer: 'status-success',
+  closed: 'status-error',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  bookmarked: 'Bookmarked',
+  applied: 'Applied',
+  in_progress: 'In Progress',
+  offer: 'Offer',
+  closed: 'Closed',
+}
+
+export default function StatusBadge({ status }: { status: string }) {
+  return <span className={`status-badge ${STATUS_CLASSES[status] || ''}`}>{STATUS_LABELS[status] || status}</span>
+}
+```
+
+- [ ] **Step 6: Implement KanbanView, KanbanColumn, KanbanCard**
+
+```tsx
+// src/components/applications/KanbanCard.tsx
+import type { Application } from '../../api/applications'
+
+interface Props {
+  application: Application
+  onClick: (app: Application) => void
+}
+
+export default function KanbanCard({ application, onClick }: Props) {
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ id: application.id }))
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  return (
+    <div className={`kanban-card ${application.status === 'closed' ? 'dimmed' : ''}`} draggable onDragStart={handleDragStart} onClick={() => onClick(application)}>
+      <div className="card-company">{application.company}</div>
+      <div className="card-position">{application.position}</div>
+      <div className="card-meta">
+        {application.referral_name && <span className="referral-badge">{application.referral_name}</span>}
+        <span className="card-date">{new Date(application.created_at).toLocaleDateString()}</span>
+        {(application.doc_count ?? 0) > 0 && <span className="doc-count">{application.doc_count} docs</span>}
+      </div>
+    </div>
+  )
+}
+```
+
+```tsx
+// src/components/applications/KanbanColumn.tsx
+import type { Application } from '../../api/applications'
+import KanbanCard from './KanbanCard'
+import StatusBadge from './StatusBadge'
+
+interface Props {
+  status: string
+  applications: Application[]
+  onCardClick: (app: Application) => void
+  onDrop: (appId: number, newStatus: string) => void
+}
+
+export default function KanbanColumn({ status, applications, onCardClick, onDrop }: Props) {
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const data = JSON.parse(e.dataTransfer.getData('application/json'))
+    onDrop(data.id, status)
+  }
+
+  return (
+    <div className="kanban-column" onDragOver={handleDragOver} onDrop={handleDrop}>
+      <div className="column-header">
+        <StatusBadge status={status} />
+        <span className="column-count">{applications.length}</span>
+      </div>
+      <div className="column-cards">
+        {applications.map(app => <KanbanCard key={app.id} application={app} onClick={onCardClick} />)}
+      </div>
+    </div>
+  )
+}
+```
+
+```tsx
+// src/components/applications/KanbanView.tsx
+import { useState } from 'react'
+import type { Application } from '../../api/applications'
+import { updateApplicationStatus } from '../../api/applications'
+import KanbanColumn from './KanbanColumn'
+
+const STATUSES = ['bookmarked', 'applied', 'in_progress', 'offer', 'closed']
+
+interface Props {
+  applications: Application[]
+  onCardClick: (app: Application) => void
+  onRefresh: () => void
+}
+
+export default function KanbanView({ applications, onCardClick, onRefresh }: Props) {
+  const [optimisticApps, setOptimisticApps] = useState<Application[] | null>(null)
+  const displayApps = optimisticApps ?? applications
+
+  const handleDrop = async (appId: number, newStatus: string) => {
+    // Prompt for closed reason if dropping into closed
+    let closedReason: string | undefined
+    if (newStatus === 'closed') {
+      closedReason = prompt('Select reason: rejected, withdrawn, accepted, ghosted') || undefined
+      if (!closedReason) return
+    }
+
+    // Optimistic update
+    const updated = applications.map(a => a.id === appId ? { ...a, status: newStatus } : a)
+    setOptimisticApps(updated)
+
+    try {
+      await updateApplicationStatus(appId, newStatus, closedReason)
+      setOptimisticApps(null)
+      onRefresh()
+    } catch {
+      // Revert on failure
+      setOptimisticApps(null)
+    }
+  }
+
+  return (
+    <div className="kanban-board">
+      {STATUSES.map(status => (
+        <KanbanColumn key={status} status={status} applications={displayApps.filter(a => a.status === status)} onCardClick={onCardClick} onDrop={handleDrop} />
+      ))}
+    </div>
+  )
+}
+```
+
+- [ ] **Step 7: Implement ApplicationModal with DocumentLinker and DocumentPicker**
+
+```tsx
+// src/components/applications/DocumentPicker.tsx
+import { useState, useEffect } from 'react'
+import { fetchDocuments, type DocumentMeta } from '../../api/documents'
+
+interface Props {
+  onSelect: (documentId: string) => void
+  excludeIds: string[]
+}
+
+export default function DocumentPicker({ onSelect, excludeIds }: Props) {
+  const [documents, setDocuments] = useState<DocumentMeta[]>([])
+
+  useEffect(() => {
+    fetchDocuments().then(docs => setDocuments(docs.filter(d => !excludeIds.includes(d.id))))
+  }, [excludeIds])
+
+  return (
+    <select onChange={e => { if (e.target.value) onSelect(e.target.value) }} defaultValue="">
+      <option value="" disabled>Select a document...</option>
+      {documents.map(d => <option key={d.id} value={d.id}>{d.display_name}</option>)}
+    </select>
+  )
+}
+```
+
+```tsx
+// src/components/applications/DocumentLinker.tsx
+import { useState, useEffect } from 'react'
+import { fetchLinkedDocuments, linkDocument, unlinkDocument, type LinkedDocument } from '../../api/applications'
+import DocumentPicker from './DocumentPicker'
+
+interface Props {
+  applicationId: number
+}
+
+export default function DocumentLinker({ applicationId }: Props) {
+  const [links, setLinks] = useState<LinkedDocument[]>([])
+  const [showPicker, setShowPicker] = useState(false)
+
+  useEffect(() => { loadLinks() }, [applicationId])
+
+  const loadLinks = async () => {
+    const docs = await fetchLinkedDocuments(applicationId)
+    setLinks(docs)
+  }
+
+  const handleLink = async (documentId: string) => {
+    const role = prompt('Document role (e.g., resume, cover_letter):') || undefined
+    await linkDocument(applicationId, documentId, role)
+    setShowPicker(false)
+    loadLinks()
+  }
+
+  const handleUnlink = async (linkId: number) => {
+    await unlinkDocument(applicationId, linkId)
+    loadLinks()
+  }
+
+  return (
+    <div className="document-linker">
+      <h4>Linked Documents</h4>
+      {links.map(l => (
+        <div key={l.id} className="linked-doc">
+          <span>{l.document_id}</span>
+          {l.role && <span className="doc-role">{l.role}</span>}
+          <button onClick={() => handleUnlink(l.id)}>Remove</button>
+        </div>
+      ))}
+      {showPicker ? (
+        <DocumentPicker onSelect={handleLink} excludeIds={links.map(l => l.document_id)} />
+      ) : (
+        <button onClick={() => setShowPicker(true)}>+ Link Document</button>
+      )}
+    </div>
+  )
+}
+```
+
+```tsx
+// src/components/applications/ApplicationModal.tsx
+import { useState } from 'react'
+import { createApplication, updateApplication, deleteApplication, type Application } from '../../api/applications'
+import DocumentLinker from './DocumentLinker'
+
+interface Props {
+  application: Application | null
+  onClose: () => void
+}
+
+export default function ApplicationModal({ application, onClose }: Props) {
+  const isEdit = application !== null
+  const [form, setForm] = useState({
+    company: application?.company || '',
+    position: application?.position || '',
+    posting_url: application?.posting_url || '',
+    login_page_url: application?.login_page_url || '',
+    login_email: '',
+    login_password: '',
+    status: application?.status || 'bookmarked',
+    closed_reason: application?.closed_reason || '',
+    has_referral: application?.has_referral || false,
+    referral_name: application?.referral_name || '',
+    notes: application?.notes || '',
+  })
+  const [showPassword, setShowPassword] = useState(false)
+
+  const handleChange = (field: string, value: string | boolean) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSave = async () => {
+    const data = { ...form, login_email: form.login_email || undefined, login_password: form.login_password || undefined, closed_reason: form.closed_reason || undefined, referral_name: form.referral_name || undefined, posting_url: form.posting_url || undefined, login_page_url: form.login_page_url || undefined, notes: form.notes || undefined }
+    if (isEdit) await updateApplication(application!.id, data)
+    else await createApplication(data)
+    onClose()
+  }
+
+  const handleDelete = async () => {
+    if (isEdit && confirm('Delete this application?')) {
+      await deleteApplication(application!.id)
+      onClose()
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-content">
+        <h2>{isEdit ? 'Edit Application' : 'Add Application'}</h2>
+        <div className="modal-section">
+          <div className="form-row">
+            <input value={form.company} onChange={e => handleChange('company', e.target.value)} placeholder="Company" required />
+            <input value={form.position} onChange={e => handleChange('position', e.target.value)} placeholder="Position" required />
+          </div>
+          <input value={form.posting_url} onChange={e => handleChange('posting_url', e.target.value)} placeholder="Posting URL" />
+        </div>
+        <div className="modal-section">
+          <select value={form.status} onChange={e => handleChange('status', e.target.value)}>
+            <option value="bookmarked">Bookmarked</option>
+            <option value="applied">Applied</option>
+            <option value="in_progress">In Progress</option>
+            <option value="offer">Offer</option>
+            <option value="closed">Closed</option>
+          </select>
+          {form.status === 'closed' && (
+            <select value={form.closed_reason} onChange={e => handleChange('closed_reason', e.target.value)}>
+              <option value="">Select reason...</option>
+              <option value="rejected">Rejected</option>
+              <option value="withdrawn">Withdrawn</option>
+              <option value="accepted">Accepted</option>
+              <option value="ghosted">Ghosted</option>
+            </select>
+          )}
+          <label><input type="checkbox" checked={form.has_referral} onChange={e => handleChange('has_referral', e.target.checked)} /> Has Referral</label>
+          {form.has_referral && <input value={form.referral_name} onChange={e => handleChange('referral_name', e.target.value)} placeholder="Referral name" />}
+        </div>
+        <div className="modal-section">
+          <input value={form.login_page_url} onChange={e => handleChange('login_page_url', e.target.value)} placeholder="Login Page URL" />
+          <input value={form.login_email} onChange={e => handleChange('login_email', e.target.value)} placeholder="Portal Email/Username" />
+          <div className="password-field">
+            <input type={showPassword ? 'text' : 'password'} value={form.login_password} onChange={e => handleChange('login_password', e.target.value)} placeholder="Portal Password" />
+            <button type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? 'Hide' : 'Show'}</button>
+          </div>
+        </div>
+        {isEdit && application && (
+          <div className="modal-section">
+            <DocumentLinker applicationId={application.id} />
+          </div>
+        )}
+        <div className="modal-section">
+          <textarea value={form.notes} onChange={e => handleChange('notes', e.target.value)} placeholder="Notes..." rows={3} />
+        </div>
+        <div className="modal-footer">
+          {isEdit && <button className="btn-danger" onClick={handleDelete}>Delete</button>}
+          <button onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={handleSave}>Save</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+```
 
 - [ ] **Step 5: Add CSS for application manager**
 
