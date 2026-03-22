@@ -10,7 +10,7 @@ interface Props {
   onUpdate: () => void
 }
 
-export default function ProfilePanel({ profile, onUpdate }: Props) {
+export default function ProfilePanel({ profile, onUpdate: _onUpdate }: Props) {
   return (
     <div className="profile-panel-inner">
       <ProfileSection title="Summary">
