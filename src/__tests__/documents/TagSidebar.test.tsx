@@ -11,21 +11,28 @@ const mockDocs: DocumentMeta[] = [
 
 describe('TagSidebar', () => {
   it('shows All Documents with total count', () => {
-    render(<TagSidebar tags={['resume', 'cv']} documents={mockDocs} activeTag={null} onSelectTag={() => {}} onCreateTag={() => {}} onDeleteTag={() => {}} />)
+    render(<TagSidebar tags={['resume', 'cv']} allDocuments={mockDocs} activeTag={null} onSelectTag={() => {}} onCreateTag={() => {}} onDeleteTag={() => {}} />)
     expect(screen.getByText('All Documents')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
   })
 
   it('shows tag counts', () => {
-    render(<TagSidebar tags={['resume', 'cv']} documents={mockDocs} activeTag={null} onSelectTag={() => {}} onCreateTag={() => {}} onDeleteTag={() => {}} />)
+    render(<TagSidebar tags={['resume', 'cv']} allDocuments={mockDocs} activeTag={null} onSelectTag={() => {}} onCreateTag={() => {}} onDeleteTag={() => {}} />)
     const resumeItem = screen.getByText('resume').closest('[data-testid]')
     expect(resumeItem).toBeInTheDocument()
   })
 
   it('calls onSelectTag when tag is clicked', async () => {
     const onSelect = vi.fn()
-    render(<TagSidebar tags={['resume', 'cv']} documents={mockDocs} activeTag={null} onSelectTag={onSelect} onCreateTag={() => {}} onDeleteTag={() => {}} />)
+    render(<TagSidebar tags={['resume', 'cv']} allDocuments={mockDocs} activeTag={null} onSelectTag={onSelect} onCreateTag={() => {}} onDeleteTag={() => {}} />)
     await userEvent.click(screen.getByText('resume'))
     expect(onSelect).toHaveBeenCalledWith('resume')
+  })
+
+  it('shows correct tag counts even when a tag is active', () => {
+    const filteredDocs = mockDocs.filter(d => d.tags.includes('resume'))
+    render(<TagSidebar tags={['resume', 'cv']} allDocuments={mockDocs} activeTag="resume" onSelectTag={() => {}} onCreateTag={() => {}} onDeleteTag={() => {}} />)
+    expect(screen.getByText('(2)')).toBeInTheDocument()
+    expect(screen.getByText('(1)')).toBeInTheDocument()
   })
 })

@@ -59,7 +59,12 @@ export default function InterviewChat({ onProfileUpdate }: Props) {
   return (
     <div className="interview-chat-inner">
       <h3>Interview</h3>
-      <div className="chat-messages">
+      <div className="chat-messages" data-testid="chat-messages">
+        {messages.length === 0 && (
+          <div className="chat-empty-state">
+            Start an interview to get help refining your profile.
+          </div>
+        )}
         {messages.map((m, i) => (
           <div key={i}>
             <ChatMessage role={m.role} content={m.content} />
@@ -70,14 +75,16 @@ export default function InterviewChat({ onProfileUpdate }: Props) {
         ))}
         <div ref={bottomRef} />
       </div>
-      {!sessionId ? (
-        <button onClick={handleStart} disabled={loading}>Start Interview</button>
-      ) : (
-        <div className="chat-input">
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Type a message..." />
-          <button onClick={handleSend} disabled={loading || !input.trim()}>Send</button>
-        </div>
-      )}
+      <div className="chat-input">
+        {!sessionId ? (
+          <button className="btn btn-primary" onClick={handleStart} disabled={loading}>Start Interview</button>
+        ) : (
+          <>
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Type a message..." />
+            <button onClick={handleSend} disabled={loading || !input.trim()}>Send</button>
+          </>
+        )}
+      </div>
     </div>
   )
 }
