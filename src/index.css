@@ -310,3 +310,97 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 .text-preview { font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: var(--color-text); }
 .no-preview { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--color-muted); font-size: 14px; }
 .preview-actions { padding: var(--space-md); border-top: 1px solid var(--color-border); display: flex; gap: var(--space-sm); }
+
+/* ===== Profile View ===== */
+
+/* Page container */
+.profile-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.profile-view h1 { padding: var(--space-md) var(--space-lg); margin: 0; font-size: 22px; font-weight: 600; border-bottom: 1px solid var(--color-border); flex-shrink: 0; }
+
+/* Split-pane layout */
+.profile-layout { display: flex; flex: 1; overflow: hidden; gap: 0; }
+
+/* Left pane: profile sections */
+.profile-main { flex: 1; overflow-y: auto; padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); }
+
+/* Right pane: interview chat */
+.profile-chat { width: 420px; flex-shrink: 0; border-left: 1px solid var(--color-border); display: flex; flex-direction: column; overflow: hidden; transition: width 0.2s ease; position: relative; }
+.profile-chat.collapsed { width: 48px; }
+
+/* Chat toggle button */
+.chat-toggle { position: absolute; top: var(--space-md); left: var(--space-sm); z-index: 10; background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 8px; cursor: pointer; color: var(--color-muted); font-size: 12px; }
+.chat-toggle:hover { color: var(--color-text); border-color: var(--color-primary); }
+
+/* Profile section card */
+.profile-section { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-md); }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
+.section-header h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--color-secondary); }
+.section-header button { background: transparent; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 12px; color: var(--color-muted); cursor: pointer; }
+.section-header button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* Skill chips */
+.skill-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.skill-chip { display: inline-flex; align-items: center; gap: var(--space-xs); background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-full); padding: 4px 10px; font-size: 13px; }
+.proficiency-badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.04em; }
+.badge-muted { background: var(--color-elevated); color: var(--color-muted); }
+.badge-accent { background: rgba(245, 158, 11, 0.15); color: var(--color-accent); }
+.badge-success { background: rgba(16, 185, 129, 0.15); color: var(--color-success); }
+.badge-secondary { background: rgba(123, 147, 212, 0.15); color: var(--color-secondary); }
+
+/* Experience list */
+.experience-list { display: flex; flex-direction: column; gap: var(--space-md); }
+.experience-item { border-left: 2px solid var(--color-primary); padding-left: var(--space-md); }
+.experience-header { display: flex; align-items: baseline; gap: var(--space-sm); flex-wrap: wrap; margin-bottom: var(--space-xs); font-size: 14px; }
+.experience-dates { margin-left: auto; font-size: 12px; color: var(--color-muted); }
+.experience-item ul { margin: var(--space-xs) 0 0 0; padding-left: var(--space-lg); color: var(--color-muted); font-size: 13px; line-height: 1.6; }
+
+/* Education list */
+.education-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+.education-item { display: flex; align-items: baseline; gap: var(--space-sm); flex-wrap: wrap; font-size: 14px; }
+.education-dates { margin-left: auto; font-size: 12px; color: var(--color-muted); }
+
+/* Certification list */
+.certification-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+.certification-item { font-size: 14px; color: var(--color-text); }
+
+/* Interview chat inner layout */
+.interview-chat-inner { display: flex; flex-direction: column; height: 100%; padding: var(--space-md); padding-top: calc(var(--space-md) + 32px); overflow: hidden; }
+.interview-chat-inner h3 { margin: 0 0 var(--space-sm) 0; font-size: 15px; font-weight: 600; color: var(--color-secondary); flex-shrink: 0; }
+
+/* Chat messages area */
+.chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-sm); padding-bottom: var(--space-sm); }
+.chat-message { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: 13px; line-height: 1.5; max-width: 90%; word-break: break-word; }
+.chat-message.user { background: var(--color-primary); color: #fff; align-self: flex-end; border-bottom-right-radius: var(--radius-sm); }
+.chat-message.assistant { background: var(--color-elevated); color: var(--color-text); align-self: flex-start; border-bottom-left-radius: var(--radius-sm); }
+
+/* Suggestion card */
+.suggestion-card { border: 1px solid var(--color-accent); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-md); font-size: 13px; margin-top: var(--space-xs); }
+.suggestion-header { font-weight: 600; margin-bottom: var(--space-sm); color: var(--color-accent); }
+.suggestion-original label, .suggestion-proposed label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); }
+.suggestion-original p, .suggestion-proposed p { margin: 2px 0 var(--space-sm) 0; color: var(--color-text); }
+.suggestion-actions { display: flex; gap: var(--space-sm); margin-top: var(--space-sm); }
+.btn-accept { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--color-success); color: var(--color-success); border-radius: var(--radius-sm); padding: 4px 12px; font-size: 12px; cursor: pointer; }
+.btn-accept:hover { background: rgba(16, 185, 129, 0.3); }
+.btn-reject { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--color-error); color: var(--color-error); border-radius: var(--radius-sm); padding: 4px 12px; font-size: 12px; cursor: pointer; }
+.btn-reject:hover { background: rgba(239, 68, 68, 0.3); }
+
+/* Chat input row */
+.chat-input { display: flex; gap: var(--space-sm); flex-shrink: 0; padding-top: var(--space-sm); border-top: 1px solid var(--color-border); }
+.chat-input input { flex: 1; background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); color: var(--color-text); font-size: 13px; outline: none; }
+.chat-input input:focus { border-color: var(--color-primary); }
+.chat-input button { background: var(--color-primary); border: none; border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); color: #fff; font-size: 13px; cursor: pointer; }
+.chat-input button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Section editor form */
+.section-editor { display: flex; flex-direction: column; gap: var(--space-sm); padding-top: var(--space-sm); }
+.section-editor textarea { background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm); color: var(--color-text); font-size: 13px; resize: vertical; font-family: inherit; }
+.section-editor input, .section-editor select { background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 6px 10px; color: var(--color-text); font-size: 13px; outline: none; }
+.section-editor input:focus, .section-editor select:focus { border-color: var(--color-primary); }
+.editor-row { display: flex; gap: var(--space-xs); align-items: center; flex-wrap: wrap; }
+.editor-group { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm); background: var(--color-bg); border-radius: var(--radius-md); border: 1px solid var(--color-border); }
+.accomplishment-row { display: flex; gap: var(--space-xs); align-items: center; }
+.accomplishment-row input { flex: 1; }
+.editor-actions { display: flex; gap: var(--space-sm); margin-top: var(--space-xs); }
+.editor-actions button { background: var(--color-primary); border: none; border-radius: var(--radius-sm); padding: 6px 14px; color: #fff; font-size: 13px; cursor: pointer; }
+.editor-actions button:last-child { background: transparent; border: 1px solid var(--color-border); color: var(--color-muted); }
+.editor-actions button:last-child:hover { border-color: var(--color-primary); color: var(--color-primary); }
