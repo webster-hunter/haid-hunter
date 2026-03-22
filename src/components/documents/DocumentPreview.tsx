@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { DocumentMeta } from '../../api/documents'
-import { getContentUrl } from '../../api/documents'
+import { getContentUrl, getDownloadUrl } from '../../api/documents'
 
 const PREVIEWABLE_TEXT = [
   'text/plain',
@@ -137,6 +137,14 @@ export function DocumentPreview({ document, allTags, onUpdate, onDelete }: Docum
         <a
           className="btn btn-secondary"
           href={getContentUrl(document.id)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open
+        </a>
+        <a
+          className="btn btn-secondary"
+          href={getDownloadUrl(document.id)}
           download={document.display_name}
         >
           Download

@@ -39,4 +39,19 @@ describe('DocumentPreview', () => {
     await userEvent.click(screen.getByText(/delete/i))
     expect(onDelete).toHaveBeenCalled()
   })
+
+  it('shows an Open button that opens file in new tab', () => {
+    render(<DocumentPreview document={mockTxtDoc} allTags={[]} onUpdate={() => {}} onDelete={() => {}} />)
+    const openLink = screen.getByText(/^open$/i).closest('a')
+    expect(openLink).toHaveAttribute('href', '/api/documents/1/content')
+    expect(openLink).toHaveAttribute('target', '_blank')
+  })
+
+  it('download link uses download param and does not open in new tab', () => {
+    render(<DocumentPreview document={mockTxtDoc} allTags={[]} onUpdate={() => {}} onDelete={() => {}} />)
+    const downloadLink = screen.getByText(/download/i).closest('a')
+    expect(downloadLink).toHaveAttribute('download')
+    expect(downloadLink).toHaveAttribute('href', '/api/documents/1/content?download=true')
+    expect(downloadLink).not.toHaveAttribute('target', '_blank')
+  })
 })

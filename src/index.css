@@ -242,7 +242,7 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 /* Document Manager */
 .document-manager-layout {
   display: grid;
-  grid-template-columns: 240px 1fr 400px;
+  grid-template-columns: 240px 1fr 800px;
   gap: var(--space-lg);
   height: calc(100vh - 140px);
 }

@@ -110,3 +110,23 @@ def test_upload_rejected_for_unsupported_type(tmp_path):
     client = TestClient(app)
     response = client.post("/api/documents/upload", files={"files": ("photo.png", b"img", "image/png")})
     assert response.status_code == 400
+
+
+def test_content_served_inline_by_default(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    upload = client.post("/api/documents/upload", files={"files": ("test.txt", b"hello", "text/plain")})
+    file_id = upload.json()[0]["id"]
+    response = client.get(f"/api/documents/{file_id}/content")
+    content_disposition = response.headers.get("content-disposition", "")
+    assert "attachment" not in content_disposition
+
+
+def test_content_served_as_attachment_when_download(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    upload = client.post("/api/documents/upload", files={"files": ("test.txt", b"hello", "text/plain")})
+    file_id = upload.json()[0]["id"]
+    response = client.get(f"/api/documents/{file_id}/content?download=true")
+    content_disposition = response.headers.get("content-disposition", "")
+    assert "attachment" in content_disposition

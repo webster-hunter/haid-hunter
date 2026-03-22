@@ -57,3 +57,7 @@ export async function syncDocuments(): Promise<{ added: string[]; removed: strin
 export function getContentUrl(id: string): string {
   return `/api/documents/${id}/content`
 }
+
+export function getDownloadUrl(id: string): string {
+  return `/api/documents/${id}/content?download=true`
+}

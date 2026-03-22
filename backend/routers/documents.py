@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from backend.config import DOCUMENTS_DIR, ALLOWED_EXTENSIONS, MAX_UPLOAD_SIZE
 from backend.services.metadata import MetadataService
@@ -37,7 +37,7 @@ async def list_documents(tag: str | None = None, search: str | None = None):
 
 
 @router.get("/{file_id}/content")
-async def get_document_content(file_id: str):
+async def get_document_content(file_id: str, download: bool = False):
     service = get_service()
     try:
         meta = service.get_file(file_id)
@@ -46,10 +46,16 @@ async def get_document_content(file_id: str):
     file_path = service.docs_dir / meta["stored_name"]
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found on disk")
-    return FileResponse(
-        file_path,
+    if download:
+        return FileResponse(
+            file_path,
+            media_type=meta["mime_type"],
+            filename=meta["original_name"],
+        )
+    content = file_path.read_bytes()
+    return Response(
+        content=content,
         media_type=meta["mime_type"],
-        filename=meta["original_name"],
     )
 
 

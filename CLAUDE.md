@@ -4,13 +4,6 @@ NOTE: All design decisions made here are superseded by the specs in the docs/sup
 
 The purpose of this application is to build a highly optimized job application experience for the current landscape of AI-driven hiring. The primary means of approaching this issue is to identify the key language in targeted job postings and the relevant experience of the user to give them a true chance to let their story speak for them.
 
-## The Development Agent Team
-- Principal Web Developer: While this application will not be hosted publicly for the time being, demonstrate best practices in developing TypeScript driven React SPAs
-- Application Security Specialist: Validate all work performed by the web developer against security best practice and OWASP top vulnerability lists. Generate a report on all vulnerabilities identified into the git untracked agent-team-reports directory.
-- Automated Testing Specialist: will be performed by superpowers/test-driven-development
-- Documentation Specialist: Use [Goolgle Developer Documentation Style Guide](https://developers.google.com/style/) to develop holistic dev and use info.
-
-
 ## Components
 
 - Locally hosted task tracking application accessed via web-browser
