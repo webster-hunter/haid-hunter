@@ -1,15 +1,17 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from backend.config import DATABASE_PATH
+from backend.config import DATABASE_PATH, DOCUMENTS_DIR
 from backend.services.database import get_connection, init_db
 from backend.services.encryption import EncryptionService
+from backend.services.metadata import MetadataService
 from pathlib import Path
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
 _db_path: Path | None = None
 _encryption: EncryptionService | None = None
+_metadata_service: MetadataService | None = None
 
 
 def get_db():
@@ -23,6 +25,13 @@ def get_encryption() -> EncryptionService:
     if _encryption is None:
         _encryption = EncryptionService()
     return _encryption
+
+
+def get_metadata_service() -> MetadataService:
+    global _metadata_service
+    if _metadata_service is None:
+        _metadata_service = MetadataService(DOCUMENTS_DIR)
+    return _metadata_service
 
 
 class CreateApplicationRequest(BaseModel):
@@ -94,8 +103,23 @@ async def get_application(app_id: int, reveal_credentials: bool = False):
         raise HTTPException(status_code=404, detail="Application not found")
     result = row_to_dict(row, reveal_credentials)
     docs = conn.execute("SELECT * FROM application_documents WHERE application_id = ?", (app_id,)).fetchall()
-    result["documents"] = [dict(d) for d in docs]
     conn.close()
+    meta_svc = get_metadata_service()
+    try:
+        meta_data = meta_svc.read()
+        files_meta = meta_data.get("files", {})
+    except Exception:
+        files_meta = {}
+    enriched_docs = []
+    for d in docs:
+        doc_dict = dict(d)
+        doc_id = doc_dict.get("document_id")
+        if doc_id and doc_id in files_meta:
+            doc_dict["original_name"] = files_meta[doc_id].get("original_name")
+        else:
+            doc_dict["original_name"] = None
+        enriched_docs.append(doc_dict)
+    result["documents"] = enriched_docs
     return result
 
 

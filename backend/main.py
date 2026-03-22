@@ -7,6 +7,7 @@ from backend.routers.profile import router as profile_router
 from backend.routers.interview import router as interview_router
 from backend.routers.applications import router as applications_router
 from backend.services.database import init_db
+from backend.services.encryption import EncryptionService
 
 app = FastAPI(title="hAId-hunter API")
 
@@ -31,6 +32,8 @@ async def startup():
     DOCUMENTS_DIR.mkdir(exist_ok=True)
     DATA_DIR.mkdir(exist_ok=True)
     init_db()
+    # Ensure encryption key is generated immediately on startup (not deferred to first request)
+    EncryptionService()
 
 
 @app.get("/api/health")

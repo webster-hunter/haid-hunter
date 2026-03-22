@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from backend.main import app
 from backend.services.database import init_db, get_connection
 from backend.services.encryption import EncryptionService
+from backend.services.metadata import MetadataService
 import backend.config as config
 from cryptography.fernet import Fernet
 
@@ -14,6 +15,9 @@ def setup_test_env(tmp_path):
     from backend.routers import applications
     applications._db_path = db_path
     applications._encryption = EncryptionService(key)
+    docs_dir = tmp_path / "documents"
+    docs_dir.mkdir(exist_ok=True)
+    applications._metadata_service = MetadataService(docs_dir)
 
 
 def test_list_applications_empty(tmp_path):
@@ -133,3 +137,94 @@ def test_unlink_document(tmp_path):
     assert response.status_code == 200
     docs = client.get(f"/api/applications/{app_id}/documents")
     assert len(docs.json()) == 0
+
+
+def test_search_applications(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.post("/api/applications", json={"company": "Globex Corp", "position": "Data Scientist", "status": "applied"})
+    client.post("/api/applications", json={"company": "Initech", "position": "Software Engineer", "status": "applied"})
+    client.post("/api/applications", json={"company": "Globex Corp", "position": "ML Engineer", "status": "bookmarked"})
+
+    # Search by company substring
+    response = client.get("/api/applications?search=Globex")
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 2
+    assert all("Globex" in r["company"] for r in results)
+
+    # Search by position substring
+    response = client.get("/api/applications?search=Engineer")
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 2
+
+    # Search with no matches
+    response = client.get("/api/applications?search=Nonexistent")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_filter_by_has_referral(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.post("/api/applications", json={
+        "company": "Acme", "position": "Engineer", "status": "applied",
+        "has_referral": True, "referral_name": "Jane Doe"
+    })
+    client.post("/api/applications", json={
+        "company": "Initech", "position": "Analyst", "status": "applied",
+        "has_referral": False
+    })
+    client.post("/api/applications", json={
+        "company": "Umbrella", "position": "Researcher", "status": "bookmarked",
+        "has_referral": True, "referral_name": "John Smith"
+    })
+
+    # Filter for apps with referral
+    response = client.get("/api/applications?has_referral=true")
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 2
+    assert all(r["has_referral"] for r in results)
+
+    # Filter for apps without referral
+    response = client.get("/api/applications?has_referral=false")
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) == 1
+    assert not results[0]["has_referral"]
+
+
+def test_cascade_delete_via_api(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    # Create an application
+    create = client.post("/api/applications", json={"company": "Acme", "position": "Engineer", "status": "applied"})
+    assert create.status_code == 200
+    app_id = create.json()["id"]
+
+    # Link a document to the application
+    link = client.post(f"/api/applications/{app_id}/documents", json={"document_id": "doc-cascade-test", "role": "resume"})
+    assert link.status_code == 200
+
+    # Verify the document link exists
+    docs_before = client.get(f"/api/applications/{app_id}/documents")
+    assert len(docs_before.json()) == 1
+
+    # Delete the application via API
+    delete_resp = client.delete(f"/api/applications/{app_id}")
+    assert delete_resp.status_code == 200
+
+    # Verify the application is gone
+    get_resp = client.get(f"/api/applications/{app_id}")
+    assert get_resp.status_code == 404
+
+    # Verify the document link is also gone (cascade)
+    from backend.routers import applications
+    conn = applications.get_db()
+    rows = conn.execute(
+        "SELECT * FROM application_documents WHERE application_id = ?", (app_id,)
+    ).fetchall()
+    conn.close()
+    assert len(rows) == 0
