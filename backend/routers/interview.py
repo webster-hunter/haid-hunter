@@ -105,9 +105,26 @@ async def accept_suggestion(body: SuggestionRequest):
             profile[section].pop(index)
 
     service.put(profile)
+
+    # Record acceptance in session state so Claude is informed on the next turn
+    session = interview_service._sessions[body.session_id]
+    session["accepted_suggestions"].append(body.suggestion_id)
+
     return {"status": "accepted", "profile": profile}
 
 
 @router.post("/reject")
 async def reject_suggestion(body: SuggestionRequest):
-    return {"status": "rejected"}
+    _sync_sessions()
+    try:
+        suggestion = interview_service.get_suggestion(body.session_id, body.suggestion_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if suggestion is None:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+
+    # Record rejection in session state so Claude is informed on the next turn
+    session = interview_service._sessions[body.session_id]
+    session["rejected_suggestions"].append(body.suggestion_id)
+
+    return {"status": "rejected", "suggestion_id": body.suggestion_id}
