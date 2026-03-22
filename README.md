@@ -1,73 +1,184 @@
-# React + TypeScript + Vite
+# hAId-hunter
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A locally hosted job application management tool that helps you organize documents,
+build a candidate profile, and track applications — optimized for the AI-driven
+hiring landscape.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+hAId-hunter runs entirely on your local machine. It provides three core features:
 
-## React Compiler
+- **Document Manager**: Upload and tag resumes, cover letters, and supporting
+  documents. Preview files in-browser and organize them with custom tags.
+- **Profile View**: Build a structured candidate profile covering skills,
+  experience, education, and certifications. An optional Claude-powered interview
+  chat helps you refine your profile through guided questions.
+- **Application Manager**: Track job applications with company details, posting
+  URLs, portal credentials (encrypted at rest), status tracking, and linked
+  documents. View applications in a sortable table or Kanban board.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Prerequisites
 
-## Expanding the ESLint configuration
+- [Node.js](https://nodejs.org/) (v18 or later)
+- [Python](https://www.python.org/) (3.12 or later)
+- An [Anthropic API key](https://console.anthropic.com/) (optional, required only
+  for the interview chat feature)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Set up
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. Clone the repository:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+   ```bash
+   git clone https://github.com/your-username/haid-hunter.git
+   cd haid-hunter
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+2. Install frontend dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Install backend dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Create a `.env` file in the project root:
+
+   ```text
+   ENCRYPTION_KEY=your-fernet-key-here
+   ANTHROPIC_API_KEY=your-anthropic-api-key-here
+   ```
+
+   Generate a Fernet encryption key with Python:
+
+   ```bash
+   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ```
+
+   The `ENCRYPTION_KEY` is required for encrypting application portal credentials.
+   The `ANTHROPIC_API_KEY` is optional and only needed for the interview chat
+   feature in Profile View.
+
+## Run the application
+
+Start the backend and frontend servers from the project root.
+
+Start the backend:
+
+```bash
+uvicorn backend.main:app --reload --port 8000
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+In a separate terminal, start the frontend dev server:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+Open `http://localhost:5173` in your browser.
+
+The Vite dev server proxies API requests to the backend on port 8000 automatically.
+
+## Project structure
+
+```
+haid-hunter/
+├── backend/                 # FastAPI backend
+│   ├── routers/             # API route handlers
+│   │   ├── applications.py  # Application CRUD and document linking
+│   │   ├── documents.py     # Document upload, preview, and management
+│   │   ├── interview.py     # Claude-powered interview chat
+│   │   ├── profile.py       # Candidate profile endpoints
+│   │   └── tags.py          # Tag management
+│   ├── services/            # Business logic
+│   │   ├── database.py      # SQLite connection and schema
+│   │   ├── encryption.py    # Fernet encryption for credentials
+│   │   ├── interview.py     # Interview session management
+│   │   ├── metadata.py      # Document metadata tracking
+│   │   └── profile.py       # Profile read/write operations
+│   ├── tests/               # Backend test suite (pytest)
+│   ├── config.py            # Configuration and environment variables
+│   └── main.py              # FastAPI application entry point
+├── src/                     # React frontend
+│   ├── api/                 # API client functions
+│   ├── components/          # React components by feature
+│   │   ├── applications/    # Application manager components
+│   │   ├── documents/       # Document manager components
+│   │   ├── profile/         # Profile view components
+│   │   └── shared/          # Navigation and shared UI
+│   └── __tests__/           # Frontend test suite (Vitest)
+├── documents/               # User document storage (gitignored)
+├── data/                    # SQLite database (gitignored)
+└── docs/                    # Design specs and style guide
+```
+
+## Run tests
+
+```bash
+# Frontend tests
+npm test
+
+# Backend tests
+pytest
+```
+
+## Tech stack
+
+| Layer    | Technology                    |
+| -------- | ----------------------------- |
+| Frontend | React 19, TypeScript, Vite 8  |
+| Backend  | FastAPI, Uvicorn              |
+| Database | SQLite                        |
+| Testing  | Vitest, pytest                |
+| AI       | Anthropic Claude API          |
+
+## Data storage
+
+All data stays on your local machine:
+
+- **Documents**: Stored in the `documents/` directory as files on disk. Metadata
+  is tracked in `documents/.metadata.json`.
+- **Profile**: Stored as `documents/.profile.json`.
+- **Applications**: Stored in a SQLite database at `data/applications.db`. Portal
+  credentials are encrypted with Fernet symmetric encryption.
+- **Interview sessions**: Held in memory only. Sessions are lost when the backend
+  restarts.
+
+## Supported file types
+
+PDF, DOCX, TXT, Markdown, XLSX, CSV, PPTX. Maximum upload size is 50 MB.
+
+## API reference
+
+| Method | Endpoint                              | Description                    |
+| ------ | ------------------------------------- | ------------------------------ |
+| GET    | `/api/health`                         | Health check                   |
+| GET    | `/api/documents`                      | List documents                 |
+| POST   | `/api/documents/upload`               | Upload documents               |
+| GET    | `/api/documents/{id}/content`         | View document content          |
+| PUT    | `/api/documents/{id}`                 | Update document metadata       |
+| DELETE | `/api/documents/{id}`                 | Delete a document              |
+| POST   | `/api/documents/sync`                 | Sync filesystem with metadata  |
+| GET    | `/api/tags`                           | List all tags                  |
+| GET    | `/api/profile`                        | Get candidate profile          |
+| PUT    | `/api/profile`                        | Replace entire profile         |
+| PATCH  | `/api/profile/{section}`              | Update a profile section       |
+| POST   | `/api/interview/start`                | Start interview session        |
+| POST   | `/api/interview/message`              | Send interview message         |
+| POST   | `/api/interview/accept`               | Accept a suggestion            |
+| POST   | `/api/interview/reject`               | Reject a suggestion            |
+| GET    | `/api/applications`                   | List applications              |
+| POST   | `/api/applications`                   | Create an application          |
+| PUT    | `/api/applications/{id}`              | Update an application          |
+| DELETE | `/api/applications/{id}`              | Delete an application          |
+| PATCH  | `/api/applications/{id}/status`       | Update application status      |
+| GET    | `/api/applications/{id}/documents`    | List linked documents          |
+| POST   | `/api/applications/{id}/documents`    | Link a document                |
+| DELETE | `/api/applications/{id}/documents/{docId}` | Unlink a document         |
+
+## License
+
+This project is for personal use.
