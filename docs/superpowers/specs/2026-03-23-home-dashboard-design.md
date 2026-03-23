@@ -62,9 +62,9 @@ Returns aggregated dashboard data in a single response.
 
 **Computed fields:**
 - `profile.current_role` — derived from the first experience entry in the profile with `end_date: null`. Formatted as `"{role} at {company} ({start_date} - Present)"`. If no current role exists, the field is `null`.
-- `applications.referrals.contacts[].company` — joined from the `applications` table via `application_id`. Each referral contact's company comes from the parent application row.
+- `applications.referrals.contacts[]` — queried from the `applications` table directly: `SELECT id, referral_name, company FROM applications WHERE has_referral = 1`. The `application_id` in the response is the application's own `id`. There is no separate referrals table; referral data lives on the application row.
 - `tasks.statuses_current` — `true` when no applications have `status` of `applied` or `in_progress` with `updated_at` older than 7 days. The `stale_count` field provides the number of applications needing a status update.
-- `tasks.applied_today` — count of applications where `status != 'bookmarked'` and `date(created_at) = date('now')`.
+- `tasks.applied_today` — count of applications where `date(created_at) = date('now')` and `status != 'bookmarked'`. This counts applications created today in a non-bookmarked state. As a simplification, it does not track status transitions on existing applications.
 
 **Response shape:**
 
