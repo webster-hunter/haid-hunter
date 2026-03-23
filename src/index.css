@@ -984,3 +984,157 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
   text-align: center;
   padding: var(--space-md);
 }
+
+/* ── Dashboard ─────────────────────────────────────────── */
+.dashboard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  overflow: hidden;
+}
+
+.dashboard-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-muted);
+  gap: var(--space-md);
+}
+
+.dashboard-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.dashboard-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Dashboard Card (shared) ───────────────────────────── */
+.dashboard-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.card-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  margin-bottom: var(--space-sm);
+}
+
+/* ── Profile Banner ────────────────────────────────────── */
+.profile-banner { overflow: hidden; }
+.profile-banner-summary { font-size: 16px; font-weight: 600; margin-bottom: var(--space-xs); }
+.profile-banner-skills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: var(--space-sm); }
+.profile-banner-role { font-size: 13px; color: var(--color-muted); margin-top: var(--space-sm); }
+.profile-banner-empty { font-size: 14px; color: var(--color-muted); }
+.profile-banner-empty a { color: var(--color-primary); text-decoration: underline; }
+
+.skill-pill {
+  background: rgba(123, 147, 212, 0.15);
+  color: var(--color-secondary);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+}
+
+/* ── Stat Card (extends .dashboard-card) ───────────────── */
+.stat-card-header { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); margin-bottom: var(--space-sm); }
+.stat-card-total { font-size: 28px; font-weight: 700; color: var(--color-text); }
+.stat-card-subtitle { font-size: 12px; color: var(--color-muted); margin-top: var(--space-xs); }
+.stat-card-empty { font-size: 12px; color: var(--color-muted); margin-top: var(--space-sm); }
+.stat-card-breakdowns { margin-top: var(--space-sm); display: flex; gap: 6px; flex-wrap: wrap; }
+.stat-card-action { margin-top: var(--space-sm); }
+
+.stat-pill {
+  background: rgba(123, 147, 212, 0.15);
+  color: var(--pill-color, var(--color-secondary));
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+}
+
+/* ── Daily Tasks ───────────────────────────────────────── */
+.daily-tasks { display: flex; flex-direction: column; }
+.daily-tasks-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); }
+.daily-tasks-add { font-size: 12px; color: var(--color-primary); cursor: pointer; background: none; border: none; }
+.daily-tasks-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; min-height: 0; }
+.daily-tasks-empty { font-size: 13px; color: var(--color-muted); padding: var(--space-sm) 0; }
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 14px;
+  background: var(--color-elevated);
+  border-radius: var(--radius-md);
+}
+.task-completed .task-content { opacity: 0.6; text-decoration: line-through; }
+.task-checkbox {
+  width: 18px; height: 18px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 12px;
+}
+.task-checkbox-done {
+  border-color: var(--color-success);
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+.task-content { flex: 1; }
+.task-title { font-size: 14px; }
+.task-subtitle { font-size: 12px; color: var(--color-muted); }
+
+.task-pill { font-size: 12px; padding: 2px 8px; border-radius: var(--radius-full); }
+.task-pill-done { background: rgba(16, 185, 129, 0.15); color: var(--color-success); }
+.task-pill-progress { background: rgba(245, 158, 11, 0.15); color: var(--color-accent); }
+.task-pill-muted { background: rgba(107, 127, 163, 0.15); color: var(--color-muted); }
+
+/* ── Referral Popover ──────────────────────────────────── */
+.referral-popover-container { position: relative; }
+.referral-popover-trigger {
+  font-size: 12px; color: var(--color-primary);
+  cursor: pointer; text-decoration: underline;
+  background: none; border: none;
+}
+.referral-popover {
+  position: absolute; bottom: 100%; left: 0;
+  background: var(--color-elevated); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: var(--space-sm);
+  min-width: 200px; z-index: 10;
+  box-shadow: var(--shadow-md);
+}
+.referral-popover-item {
+  display: flex; justify-content: space-between;
+  font-size: 12px; padding: var(--space-xs) 0;
+}
+.referral-popover-item + .referral-popover-item { border-top: 1px solid rgba(46, 63, 92, 0.4); }
+.referral-name { color: var(--color-text); }
+.referral-company { color: var(--color-muted); }
+
+/* ── Placeholder Card ──────────────────────────────────── */
+.placeholder-card {
+  border-style: dashed;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+}
+.placeholder-title { font-size: 14px; color: var(--color-muted); }
+.placeholder-subtitle { font-size: 12px; color: var(--color-primary); margin-top: var(--space-xs); }
