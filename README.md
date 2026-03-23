@@ -8,6 +8,9 @@ hiring landscape.
 
 hAId-hunter runs entirely on your local machine. It provides three core features:
 
+- **Home Dashboard**: At-a-glance overview of your entire job search — profile
+  banner, document and application statistics, referral contacts, and a
+  user-defined task system with recurring and one-time tasks.
 - **Document Manager**: Upload and tag resumes, cover letters, and supporting
   documents. Preview files in-browser and organize them with custom tags.
 - **Profile View**: Build a structured candidate profile covering skills,
@@ -89,10 +92,13 @@ haid-hunter/
 ├── backend/                 # FastAPI backend
 │   ├── routers/             # API route handlers
 │   │   ├── applications.py  # Application CRUD and document linking
+│   │   ├── dashboard.py     # Aggregated dashboard endpoint
 │   │   ├── documents.py     # Document upload, preview, and management
 │   │   ├── interview.py     # Claude-powered interview chat
 │   │   ├── profile.py       # Candidate profile endpoints
-│   │   └── tags.py          # Tag management
+│   │   ├── settings.py      # User settings (key-value)
+│   │   ├── tags.py          # Tag management
+│   │   └── tasks.py         # User-defined task CRUD
 │   ├── services/            # Business logic
 │   │   ├── database.py      # SQLite connection and schema
 │   │   ├── encryption.py    # Fernet encryption for credentials
@@ -107,6 +113,7 @@ haid-hunter/
 │   ├── components/          # React components by feature
 │   │   ├── applications/    # Application manager components
 │   │   ├── documents/       # Document manager components
+│   │   ├── home/            # Dashboard and stat components
 │   │   ├── profile/         # Profile view components
 │   │   └── shared/          # Navigation and shared UI
 │   └── __tests__/           # Frontend test suite (Vitest)
@@ -142,8 +149,9 @@ All data stays on your local machine:
 - **Documents**: Stored in the `documents/` directory as files on disk. Metadata
   is tracked in `documents/.metadata.json`.
 - **Profile**: Stored as `documents/.profile.json`.
-- **Applications**: Stored in a SQLite database at `data/applications.db`. Portal
-  credentials are encrypted with Fernet symmetric encryption.
+- **Applications, tasks, and settings**: Stored in a SQLite database at
+  `data/applications.db`. Portal credentials are encrypted with Fernet symmetric
+  encryption.
 - **Interview sessions**: Held in memory only. Sessions are lost when the backend
   restarts.
 
@@ -156,6 +164,7 @@ PDF, DOCX, TXT, Markdown, XLSX, CSV, PPTX. Maximum upload size is 50 MB.
 | Method | Endpoint                              | Description                    |
 | ------ | ------------------------------------- | ------------------------------ |
 | GET    | `/api/health`                         | Health check                   |
+| GET    | `/api/dashboard`                      | Aggregated dashboard data      |
 | GET    | `/api/documents`                      | List documents                 |
 | POST   | `/api/documents/upload`               | Upload documents               |
 | GET    | `/api/documents/{id}/content`         | View document content          |
@@ -178,6 +187,12 @@ PDF, DOCX, TXT, Markdown, XLSX, CSV, PPTX. Maximum upload size is 50 MB.
 | GET    | `/api/applications/{id}/documents`    | List linked documents          |
 | POST   | `/api/applications/{id}/documents`    | Link a document                |
 | DELETE | `/api/applications/{id}/documents/{docId}` | Unlink a document         |
+| GET    | `/api/tasks`                          | List tasks                     |
+| POST   | `/api/tasks`                          | Create a task                  |
+| PATCH  | `/api/tasks/{id}`                     | Toggle task completion         |
+| DELETE | `/api/tasks/{id}`                     | Delete a task                  |
+| GET    | `/api/settings/{key}`                 | Get a setting value            |
+| PUT    | `/api/settings/{key}`                 | Set a setting value            |
 
 ## License
 
