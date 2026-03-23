@@ -1075,6 +1075,64 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 .daily-tasks-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; min-height: 0; }
 .daily-tasks-empty { font-size: 13px; color: var(--color-muted); padding: var(--space-sm) 0; }
 
+.add-task-form {
+  margin-bottom: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.add-task-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 13px;
+  outline: none;
+}
+.add-task-input:focus { border-color: var(--color-primary); }
+.add-task-options {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+.add-task-select {
+  padding: 4px 8px;
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 12px;
+}
+.add-task-interval {
+  width: 60px;
+  padding: 4px 8px;
+  background: var(--color-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 12px;
+}
+.add-task-submit {
+  padding: 4px 12px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+}
+.add-task-cancel {
+  padding: 4px 12px;
+  background: none;
+  color: var(--color-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .task-row {
   display: flex;
   align-items: center;

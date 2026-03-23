@@ -24,6 +24,7 @@ export default function DocumentManager() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedDoc, setSelectedDoc] = useState<DocumentMeta | null>(null)
   const [status, setStatus] = useState('')
+  const [loading, setLoading] = useState(true)
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -51,9 +52,7 @@ export default function DocumentManager() {
   }, [])
 
   useEffect(() => {
-    loadDocuments()
-    loadTags()
-    loadAllDocuments()
+    Promise.all([loadDocuments(), loadTags(), loadAllDocuments()]).finally(() => setLoading(false))
   }, [loadDocuments, loadTags, loadAllDocuments])
 
   useEffect(() => {
@@ -133,6 +132,15 @@ export default function DocumentManager() {
     } catch {
       setStatus('Failed to delete document.')
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="document-manager">
+        <h1>Documents</h1>
+        <div className="loading">Loading...</div>
+      </div>
+    )
   }
 
   return (

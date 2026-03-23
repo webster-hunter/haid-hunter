@@ -59,9 +59,13 @@ export default function Dashboard() {
     fetchDashboard()
   }
 
-  const handleAddTask = () => {
-    // Out of scope for this plan. The add-task modal/form will be implemented
-    // as a follow-up after the dashboard is functional. The backend CRUD is ready.
+  const handleAddTask = async (title: string, recurrence: string | null, intervalDays: number | null) => {
+    await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, recurrence, interval_days: intervalDays }),
+    })
+    fetchDashboard()
   }
 
   if (error) {
@@ -85,7 +89,7 @@ export default function Dashboard() {
 
   const docBreakdowns = Object.entries(data.documents.by_tag).map(([label, count]) => ({ label, count }))
   const appBreakdowns = Object.entries(data.applications.by_status).map(([label, count]) => ({
-    label,
+    label: label.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
     count,
     color: STATUS_COLORS[label],
   }))

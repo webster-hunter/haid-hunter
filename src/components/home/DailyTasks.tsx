@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 interface UserTask {
   id: number
   title: string
@@ -14,7 +16,7 @@ interface DailyTasksProps {
   staleCount: number
   userTasks: UserTask[]
   onToggleTask: (id: number, completed: boolean) => void
-  onAddTask: () => void
+  onAddTask: (title: string, recurrence: string | null, intervalDays: number | null) => void
 }
 
 function getApplyStatus(applied: number, target: number) {
@@ -48,13 +50,78 @@ export function DailyTasks({
   onAddTask,
 }: DailyTasksProps) {
   const applyStatus = getApplyStatus(appliedToday, dailyTarget)
+  const [showForm, setShowForm] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newRecurrence, setNewRecurrence] = useState<string>('one-time')
+  const [newInterval, setNewInterval] = useState('')
+
+  const handleSubmit = () => {
+    const title = newTitle.trim()
+    if (!title) return
+
+    let recurrence: string | null = null
+    let intervalDays: number | null = null
+
+    if (newRecurrence === 'daily') {
+      recurrence = 'daily'
+    } else if (newRecurrence === 'weekly') {
+      recurrence = 'weekly'
+    } else if (newRecurrence === 'custom') {
+      recurrence = 'custom'
+      intervalDays = parseInt(newInterval) || 1
+    }
+
+    onAddTask(title, recurrence, intervalDays)
+    setNewTitle('')
+    setNewRecurrence('one-time')
+    setNewInterval('')
+    setShowForm(false)
+  }
 
   return (
     <div className="dashboard-card daily-tasks">
       <div className="daily-tasks-header">
         <div className="card-header">Daily Tasks</div>
-        <button className="daily-tasks-add" onClick={onAddTask}>+ Add Task</button>
+        <button className="daily-tasks-add" onClick={() => setShowForm(!showForm)}>+ Add Task</button>
       </div>
+
+      {showForm && (
+        <div className="add-task-form">
+          <input
+            className="add-task-input"
+            type="text"
+            placeholder="Task title..."
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            autoFocus
+          />
+          <div className="add-task-options">
+            <select
+              className="add-task-select"
+              value={newRecurrence}
+              onChange={(e) => setNewRecurrence(e.target.value)}
+            >
+              <option value="one-time">One-time</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="custom">Custom</option>
+            </select>
+            {newRecurrence === 'custom' && (
+              <input
+                className="add-task-interval"
+                type="number"
+                min="1"
+                placeholder="days"
+                value={newInterval}
+                onChange={(e) => setNewInterval(e.target.value)}
+              />
+            )}
+            <button className="add-task-submit" onClick={handleSubmit}>Add</button>
+            <button className="add-task-cancel" onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       <div className="daily-tasks-list">
         {/* Built-in: Apply for positions */}

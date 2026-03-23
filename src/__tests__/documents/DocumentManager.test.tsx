@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import DocumentManager from '../../components/documents/DocumentManager'
 
@@ -12,7 +12,9 @@ beforeEach(() => {
 describe('DocumentManager', () => {
   it('renders the three-panel layout', async () => {
     render(<DocumentManager />)
-    expect(screen.getByTestId('tag-sidebar')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByTestId('tag-sidebar')).toBeInTheDocument()
+    })
     expect(screen.getByTestId('document-list-panel')).toBeInTheDocument()
   })
 
