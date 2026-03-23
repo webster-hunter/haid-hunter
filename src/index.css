@@ -1104,16 +1104,28 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
   border-radius: var(--radius-sm);
   color: var(--color-text);
   font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%236B7FA3' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 22px;
 }
+.add-task-select:focus { border-color: var(--color-primary); }
 .add-task-interval {
-  width: 60px;
+  width: 48px;
   padding: 4px 8px;
   background: var(--color-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
   font-size: 12px;
+  text-align: center;
+  outline: none;
 }
+.add-task-interval:focus { border-color: var(--color-primary); }
 .add-task-submit {
   padding: 4px 12px;
   background: var(--color-primary);

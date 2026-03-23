@@ -54,6 +54,7 @@ export function DailyTasks({
   const [newTitle, setNewTitle] = useState('')
   const [newRecurrence, setNewRecurrence] = useState<string>('one-time')
   const [newInterval, setNewInterval] = useState('')
+  const [newUnit, setNewUnit] = useState<string>('days')
 
   const handleSubmit = () => {
     const title = newTitle.trim()
@@ -68,13 +69,16 @@ export function DailyTasks({
       recurrence = 'weekly'
     } else if (newRecurrence === 'custom') {
       recurrence = 'custom'
-      intervalDays = parseInt(newInterval) || 1
+      const n = parseInt(newInterval) || 1
+      const multiplier = newUnit === 'weeks' ? 7 : newUnit === 'months' ? 30 : 1
+      intervalDays = n * multiplier
     }
 
     onAddTask(title, recurrence, intervalDays)
     setNewTitle('')
     setNewRecurrence('one-time')
     setNewInterval('')
+    setNewUnit('days')
     setShowForm(false)
   }
 
@@ -108,14 +112,25 @@ export function DailyTasks({
               <option value="custom">Custom</option>
             </select>
             {newRecurrence === 'custom' && (
-              <input
-                className="add-task-interval"
-                type="number"
-                min="1"
-                placeholder="days"
-                value={newInterval}
-                onChange={(e) => setNewInterval(e.target.value)}
-              />
+              <>
+                <input
+                  className="add-task-interval"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="N"
+                  value={newInterval}
+                  onChange={(e) => setNewInterval(e.target.value.replace(/\D/g, ''))}
+                />
+                <select
+                  className="add-task-select"
+                  value={newUnit}
+                  onChange={(e) => setNewUnit(e.target.value)}
+                >
+                  <option value="days">days</option>
+                  <option value="weeks">weeks</option>
+                  <option value="months">months</option>
+                </select>
+              </>
             )}
             <button className="add-task-submit" onClick={handleSubmit}>Add</button>
             <button className="add-task-cancel" onClick={() => setShowForm(false)}>Cancel</button>
