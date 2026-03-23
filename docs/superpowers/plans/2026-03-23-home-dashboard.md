@@ -1658,7 +1658,7 @@ export function ReferralPopover({ contacts }: ReferralPopoverProps) {
 }
 ```
 
-- [ ] **Step 2: Create PlaceholderCard**
+- [ ] **Step 4: Create PlaceholderCard**
 
 Create `src/components/home/PlaceholderCard.tsx`:
 
