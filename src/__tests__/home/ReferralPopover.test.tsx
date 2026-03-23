@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect } from 'vitest'
 import { ReferralPopover } from '../../components/home/ReferralPopover'
 
@@ -9,12 +10,12 @@ const contacts = [
 
 describe('ReferralPopover', () => {
   it('renders trigger button', () => {
-    render(<ReferralPopover contacts={contacts} />)
+    render(<MemoryRouter><ReferralPopover contacts={contacts} /></MemoryRouter>)
     expect(screen.getByText('View all referrals →')).toBeInTheDocument()
   })
 
   it('shows popover with contacts on click', () => {
-    render(<ReferralPopover contacts={contacts} />)
+    render(<MemoryRouter><ReferralPopover contacts={contacts} /></MemoryRouter>)
     fireEvent.click(screen.getByText('View all referrals →'))
     expect(screen.getByTestId('referral-popover')).toBeInTheDocument()
     expect(screen.getByText('Jane')).toBeInTheDocument()
@@ -23,7 +24,7 @@ describe('ReferralPopover', () => {
   })
 
   it('hides popover on second click', () => {
-    render(<ReferralPopover contacts={contacts} />)
+    render(<MemoryRouter><ReferralPopover contacts={contacts} /></MemoryRouter>)
     const trigger = screen.getByText('View all referrals →')
     fireEvent.click(trigger)
     expect(screen.getByTestId('referral-popover')).toBeInTheDocument()

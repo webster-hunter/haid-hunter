@@ -46,68 +46,72 @@ async def create_task(body: CreateTaskRequest):
     if body.recurrence in RECURRENCE_INTERVALS:
         interval = RECURRENCE_INTERVALS[body.recurrence]
     conn = get_db()
-    cursor = conn.execute(
-        "INSERT INTO tasks (title, recurrence, interval_days, created_at) VALUES (?, ?, ?, ?)",
-        (body.title, body.recurrence, interval, now),
-    )
-    conn.commit()
-    row = conn.execute("SELECT * FROM tasks WHERE id = ?", (cursor.lastrowid,)).fetchone()
-    conn.close()
-    return dict(row)
+    try:
+        cursor = conn.execute(
+            "INSERT INTO tasks (title, recurrence, interval_days, created_at) VALUES (?, ?, ?, ?)",
+            (body.title, body.recurrence, interval, now),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (cursor.lastrowid,)).fetchone()
+        return dict(row)
+    finally:
+        conn.close()
 
 
 @router.patch("/{task_id}")
 async def patch_task(task_id: int, body: PatchTaskRequest):
     conn = get_db()
-    row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
-    if not row:
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        updates = []
+        params = []
+        if body.title is not None:
+            updates.append("title = ?")
+            params.append(body.title)
+        if body.recurrence is not None:
+            rec = body.recurrence if body.recurrence else None
+            updates.append("recurrence = ?")
+            params.append(rec)
+            interval = body.interval_days
+            if rec and rec in RECURRENCE_INTERVALS:
+                interval = RECURRENCE_INTERVALS[rec]
+            elif not rec:
+                interval = None
+            updates.append("interval_days = ?")
+            params.append(interval)
+        elif body.interval_days is not None:
+            updates.append("interval_days = ?")
+            params.append(body.interval_days)
+        if body.completed is True:
+            updates.append("completed_at = ?")
+            params.append(datetime.now(timezone.utc).isoformat())
+        elif body.completed is False:
+            updates.append("completed_at = ?")
+            params.append(None)
+
+        if updates:
+            params.append(task_id)
+            conn.execute(f"UPDATE tasks SET {', '.join(updates)} WHERE id = ?", params)
+            conn.commit()
+
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        return dict(row)
+    finally:
         conn.close()
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    updates = []
-    params = []
-    if body.title is not None:
-        updates.append("title = ?")
-        params.append(body.title)
-    if body.recurrence is not None:
-        rec = body.recurrence if body.recurrence else None
-        updates.append("recurrence = ?")
-        params.append(rec)
-        interval = body.interval_days
-        if rec and rec in RECURRENCE_INTERVALS:
-            interval = RECURRENCE_INTERVALS[rec]
-        elif not rec:
-            interval = None
-        updates.append("interval_days = ?")
-        params.append(interval)
-    elif body.interval_days is not None:
-        updates.append("interval_days = ?")
-        params.append(body.interval_days)
-    if body.completed is True:
-        updates.append("completed_at = ?")
-        params.append(datetime.now(timezone.utc).isoformat())
-    elif body.completed is False:
-        updates.append("completed_at = ?")
-        params.append(None)
-
-    if updates:
-        params.append(task_id)
-        conn.execute(f"UPDATE tasks SET {', '.join(updates)} WHERE id = ?", params)
-        conn.commit()
-
-    row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
-    conn.close()
-    return dict(row)
 
 
 @router.delete("/{task_id}")
 async def delete_task(task_id: int):
     conn = get_db()
-    row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
-    if not row:
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Task not found")
+        conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        conn.commit()
+        return {"status": "deleted"}
+    finally:
         conn.close()
-        raise HTTPException(status_code=404, detail="Task not found")
-    conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
-    conn.commit()
-    conn.close()
-    return {"status": "deleted"}

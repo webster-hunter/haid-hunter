@@ -18,7 +18,7 @@ interface StatCardProps {
 export function StatCard({ title, total, subtitle, breakdowns, action, emptyMessage }: StatCardProps) {
   return (
     <div className="dashboard-card stat-card">
-      <div className="stat-card-header">{title}</div>
+      <div className="card-header">{title}</div>
       <div className="stat-card-total">{total}</div>
       <div className="stat-card-subtitle">{subtitle}</div>
       {total === 0 && (

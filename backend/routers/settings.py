@@ -22,21 +22,25 @@ class PutSettingRequest(BaseModel):
 @router.get("/{key}")
 async def get_setting(key: str):
     conn = get_db()
-    row = conn.execute("SELECT key, value FROM settings WHERE key = ?", (key,)).fetchone()
-    conn.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="Setting not found")
-    return dict(row)
+    try:
+        row = conn.execute("SELECT key, value FROM settings WHERE key = ?", (key,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Setting not found")
+        return dict(row)
+    finally:
+        conn.close()
 
 
 @router.put("/{key}")
 async def put_setting(key: str, body: PutSettingRequest):
     conn = get_db()
-    conn.execute(
-        "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?",
-        (key, body.value, body.value),
-    )
-    conn.commit()
-    row = conn.execute("SELECT key, value FROM settings WHERE key = ?", (key,)).fetchone()
-    conn.close()
-    return dict(row)
+    try:
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?",
+            (key, body.value, body.value),
+        )
+        conn.commit()
+        row = conn.execute("SELECT key, value FROM settings WHERE key = ?", (key,)).fetchone()
+        return dict(row)
+    finally:
+        conn.close()

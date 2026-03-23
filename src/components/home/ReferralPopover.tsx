@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 
 interface ReferralContact {
   name: string
@@ -32,10 +33,10 @@ export function ReferralPopover({ contacts }: ReferralPopoverProps) {
       {open && (
         <div className="referral-popover" data-testid="referral-popover">
           {contacts.map((c) => (
-            <div key={c.application_id} className="referral-popover-item">
+            <Link key={c.application_id} to={`/applications`} className="referral-popover-item">
               <span className="referral-name">{c.name}</span>
               <span className="referral-company">{c.company}</span>
-            </div>
+            </Link>
           ))}
         </div>
       )}

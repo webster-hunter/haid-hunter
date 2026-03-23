@@ -1054,7 +1054,6 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 }
 
 /* ── Stat Card (extends .dashboard-card) ───────────────── */
-.stat-card-header { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); margin-bottom: var(--space-sm); }
 .stat-card-total { font-size: 28px; font-weight: 700; color: var(--color-text); }
 .stat-card-subtitle { font-size: 12px; color: var(--color-muted); margin-top: var(--space-xs); }
 .stat-card-empty { font-size: 12px; color: var(--color-muted); margin-top: var(--space-sm); }
