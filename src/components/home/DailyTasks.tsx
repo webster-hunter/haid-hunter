@@ -7,30 +7,14 @@ interface UserTask {
   interval_days: number | null
   is_due: boolean
   completed_today: boolean
+  completed_at: string | null
 }
 
 interface DailyTasksProps {
-  dailyTarget: number
-  appliedToday: number
-  statusesCurrent: boolean
-  staleCount: number
   userTasks: UserTask[]
   onToggleTask: (id: number, completed: boolean) => void
   onAddTask: (title: string, recurrence: string | null, intervalDays: number | null) => void
-}
-
-function getApplyStatus(applied: number, target: number) {
-  if (applied >= target) return 'done'
-  if (applied > 0) return 'in progress'
-  return 'pending'
-}
-
-function getStatusPillClass(status: string) {
-  switch (status) {
-    case 'done': return 'task-pill task-pill-done'
-    case 'in progress': return 'task-pill task-pill-progress'
-    default: return 'task-pill task-pill-muted'
-  }
+  onDeleteTask: (id: number) => void
 }
 
 function recurrenceLabel(task: UserTask) {
@@ -40,16 +24,18 @@ function recurrenceLabel(task: UserTask) {
   return `Every ${task.interval_days} days`
 }
 
+function formatCompletedAt(dateStr: string | null): string | null {
+  if (!dateStr) return null
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export function DailyTasks({
-  dailyTarget,
-  appliedToday,
-  statusesCurrent,
-  staleCount,
   userTasks,
   onToggleTask,
   onAddTask,
+  onDeleteTask,
 }: DailyTasksProps) {
-  const applyStatus = getApplyStatus(appliedToday, dailyTarget)
   const [showForm, setShowForm] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newRecurrence, setNewRecurrence] = useState<string>('one-time')
@@ -85,7 +71,7 @@ export function DailyTasks({
   return (
     <div className="dashboard-card daily-tasks">
       <div className="daily-tasks-header">
-        <div className="card-header">Daily Tasks</div>
+        <div className="card-header">Tasks</div>
         <button className="daily-tasks-add" onClick={() => setShowForm(!showForm)}>+ Add Task</button>
       </div>
 
@@ -139,35 +125,6 @@ export function DailyTasks({
       )}
 
       <div className="daily-tasks-list">
-        {/* Built-in: Apply for positions */}
-        <div className={`task-row ${applyStatus === 'done' ? 'task-completed' : ''}`}>
-          <div className={`task-checkbox ${applyStatus === 'done' ? 'task-checkbox-done' : ''}`}>
-            {applyStatus === 'done' && '✓'}
-          </div>
-          <div className="task-content">
-            <div className="task-title">Apply for positions</div>
-            <div className="task-subtitle">{appliedToday} of {dailyTarget} today</div>
-          </div>
-          <span className={getStatusPillClass(applyStatus)}>{applyStatus}</span>
-        </div>
-
-        {/* Built-in: Update statuses */}
-        <div className={`task-row ${statusesCurrent ? 'task-completed' : ''}`}>
-          <div className={`task-checkbox ${statusesCurrent ? 'task-checkbox-done' : ''}`}>
-            {statusesCurrent && '✓'}
-          </div>
-          <div className="task-content">
-            <div className="task-title">Update application statuses</div>
-            <div className="task-subtitle">
-              {statusesCurrent ? 'All statuses current' : `${staleCount} need update`}
-            </div>
-          </div>
-          <span className={statusesCurrent ? 'task-pill task-pill-done' : 'task-pill task-pill-progress'}>
-            {statusesCurrent ? 'done' : 'in progress'}
-          </span>
-        </div>
-
-        {/* User tasks */}
         {userTasks.map((task) => (
           <div key={task.id} className={`task-row ${task.completed_today ? 'task-completed' : ''}`}>
             <div
@@ -179,11 +136,22 @@ export function DailyTasks({
             </div>
             <div className="task-content">
               <div className="task-title">{task.title}</div>
-              <div className="task-subtitle">{recurrenceLabel(task)}</div>
+              <div className="task-subtitle">
+                {recurrenceLabel(task)}
+                {task.completed_at && ` · Last completed: ${formatCompletedAt(task.completed_at)}`}
+              </div>
             </div>
             <span className={task.completed_today ? 'task-pill task-pill-done' : `task-pill task-pill-muted`}>
               {task.completed_today ? 'done' : (task.recurrence ? 'recurring' : 'one-time')}
             </span>
+            <button
+              className="task-delete"
+              data-testid={`task-delete-${task.id}`}
+              onClick={() => onDeleteTask(task.id)}
+              aria-label={`Delete ${task.title}`}
+            >
+              ✕
+            </button>
           </div>
         ))}
 

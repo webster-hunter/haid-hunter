@@ -28,7 +28,8 @@ interface DashboardData {
     stale_count: number
     user_tasks: Array<{
       id: number; title: string; recurrence: string | null;
-      interval_days: number | null; is_due: boolean; completed_today: boolean
+      interval_days: number | null; is_due: boolean; completed_today: boolean;
+      completed_at: string | null
     }>
   }
 }
@@ -65,6 +66,11 @@ export default function Dashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, recurrence, interval_days: intervalDays }),
     })
+    fetchDashboard()
+  }
+
+  const handleDeleteTask = async (id: number) => {
+    await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
     fetchDashboard()
   }
 
@@ -120,13 +126,10 @@ export default function Dashboard() {
 
       <div className="dashboard-bottom-row">
         <DailyTasks
-          dailyTarget={data.tasks.daily_target}
-          appliedToday={data.tasks.applied_today}
-          statusesCurrent={data.tasks.statuses_current}
-          staleCount={data.tasks.stale_count}
           userTasks={data.tasks.user_tasks}
           onToggleTask={handleToggleTask}
           onAddTask={handleAddTask}
+          onDeleteTask={handleDeleteTask}
         />
         <PlaceholderCard />
       </div>

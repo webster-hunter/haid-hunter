@@ -127,6 +127,7 @@ def _build_tasks_section(conn) -> dict:
             "interval_days": t["interval_days"],
             "is_due": is_due,
             "completed_today": completed_today,
+            "completed_at": completed_at,
         })
 
     return {

@@ -1153,7 +1153,7 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
   background: var(--color-elevated);
   border-radius: var(--radius-md);
 }
-.task-completed .task-content { opacity: 0.6; text-decoration: line-through; }
+.task-completed .task-title { opacity: 0.6; text-decoration: line-through; }
 .task-checkbox {
   width: 18px; height: 18px;
   border: 2px solid var(--color-border);
@@ -1175,6 +1175,22 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 .task-pill-done { background: rgba(16, 185, 129, 0.15); color: var(--color-success); }
 .task-pill-progress { background: rgba(245, 158, 11, 0.15); color: var(--color-accent); }
 .task-pill-muted { background: rgba(107, 127, 163, 0.15); color: var(--color-muted); }
+
+.task-delete {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  flex-shrink: 0;
+}
+.task-delete:hover {
+  color: var(--color-error);
+  background: rgba(239, 68, 68, 0.1);
+}
 
 /* ── Referral Popover ──────────────────────────────────── */
 .referral-popover-container { position: relative; }

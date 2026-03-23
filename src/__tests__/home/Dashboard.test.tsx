@@ -30,7 +30,7 @@ const mockDashboardData = {
     statuses_current: true,
     stale_count: 0,
     user_tasks: [
-      { id: 1, title: 'Review LinkedIn', recurrence: 'custom', interval_days: 3, is_due: true, completed_today: false },
+      { id: 1, title: 'Review LinkedIn', recurrence: 'custom', interval_days: 3, is_due: true, completed_today: false, completed_at: null },
     ],
   },
 }
@@ -76,8 +76,7 @@ describe('Dashboard', () => {
 
   it('renders daily tasks section', async () => {
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
-    expect(await screen.findByText('Daily Tasks')).toBeInTheDocument()
-    expect(screen.getByText('Apply for positions')).toBeInTheDocument()
+    expect(await screen.findByText('Tasks')).toBeInTheDocument()
     expect(screen.getByText('Review LinkedIn')).toBeInTheDocument()
   })
 

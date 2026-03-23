@@ -3,45 +3,20 @@ import { describe, it, expect, vi } from 'vitest'
 import { DailyTasks } from '../../components/home/DailyTasks'
 
 const baseProps = {
-  dailyTarget: 5,
-  appliedToday: 2,
-  statusesCurrent: true,
-  staleCount: 0,
   userTasks: [],
   onToggleTask: vi.fn(),
   onAddTask: vi.fn(),
+  onDeleteTask: vi.fn(),
 }
 
 describe('DailyTasks', () => {
-  it('renders built-in apply goal with progress', () => {
-    render(<DailyTasks {...baseProps} />)
-    expect(screen.getByText('Apply for positions')).toBeInTheDocument()
-    expect(screen.getByText('2 of 5 today')).toBeInTheDocument()
-  })
-
-  it('shows done pill when apply target met', () => {
-    render(<DailyTasks {...baseProps} appliedToday={5} />)
-    expect(screen.getAllByText('done').length).toBeGreaterThan(0)
-  })
-
-  it('renders status update goal as current', () => {
-    render(<DailyTasks {...baseProps} />)
-    expect(screen.getByText('Update application statuses')).toBeInTheDocument()
-    expect(screen.getByText('All statuses current')).toBeInTheDocument()
-  })
-
-  it('renders stale status count', () => {
-    render(<DailyTasks {...baseProps} statusesCurrent={false} staleCount={3} />)
-    expect(screen.getByText('3 need update')).toBeInTheDocument()
-  })
-
   it('renders user tasks', () => {
     render(
       <DailyTasks
         {...baseProps}
         userTasks={[
-          { id: 1, title: 'Review LinkedIn', recurrence: 'custom', interval_days: 3, is_due: true, completed_today: false },
-          { id: 2, title: 'Tailor resume', recurrence: null, interval_days: null, is_due: true, completed_today: false },
+          { id: 1, title: 'Review LinkedIn', recurrence: 'custom', interval_days: 3, is_due: true, completed_today: false, completed_at: null },
+          { id: 2, title: 'Tailor resume', recurrence: null, interval_days: null, is_due: true, completed_today: false, completed_at: null },
         ]}
       />
     )
@@ -56,12 +31,39 @@ describe('DailyTasks', () => {
         {...baseProps}
         onToggleTask={onToggle}
         userTasks={[
-          { id: 1, title: 'Test task', recurrence: null, interval_days: null, is_due: true, completed_today: false },
+          { id: 1, title: 'Test task', recurrence: null, interval_days: null, is_due: true, completed_today: false, completed_at: null },
         ]}
       />
     )
     fireEvent.click(screen.getByTestId('task-checkbox-1'))
     expect(onToggle).toHaveBeenCalledWith(1, true)
+  })
+
+  it('calls onDeleteTask when delete button clicked', () => {
+    const onDelete = vi.fn()
+    render(
+      <DailyTasks
+        {...baseProps}
+        onDeleteTask={onDelete}
+        userTasks={[
+          { id: 1, title: 'Test task', recurrence: null, interval_days: null, is_due: true, completed_today: false, completed_at: null },
+        ]}
+      />
+    )
+    fireEvent.click(screen.getByTestId('task-delete-1'))
+    expect(onDelete).toHaveBeenCalledWith(1)
+  })
+
+  it('shows last completion date when present', () => {
+    render(
+      <DailyTasks
+        {...baseProps}
+        userTasks={[
+          { id: 1, title: 'Daily review', recurrence: 'daily', interval_days: 1, is_due: true, completed_today: false, completed_at: '2026-03-22T14:30:00' },
+        ]}
+      />
+    )
+    expect(screen.getByText(/Last completed: Mar 22/)).toBeInTheDocument()
   })
 
   it('shows empty message with no user tasks', () => {
