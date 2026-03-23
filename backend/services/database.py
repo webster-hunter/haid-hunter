@@ -27,6 +27,22 @@ CREATE TABLE IF NOT EXISTS application_documents (
     role TEXT,
     FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    recurrence TEXT,
+    interval_days INTEGER,
+    completed_at DATETIME,
+    created_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+INSERT OR IGNORE INTO settings (key, value) VALUES ('daily_application_target', '5');
 """
 
 

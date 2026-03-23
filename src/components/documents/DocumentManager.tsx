@@ -17,12 +17,14 @@ import type { DocumentMeta } from '../../api/documents'
 
 export default function DocumentManager() {
   const [documents, setDocuments] = useState<DocumentMeta[]>([])
+  const [allDocuments, setAllDocuments] = useState<DocumentMeta[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedDoc, setSelectedDoc] = useState<DocumentMeta | null>(null)
   const [status, setStatus] = useState('')
+  const [loading, setLoading] = useState(true)
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -32,6 +34,13 @@ export default function DocumentManager() {
       setStatus('Failed to load documents.')
     }
   }, [activeTag, search])
+
+  const loadAllDocuments = useCallback(async () => {
+    try {
+      const docs = await fetchDocuments()
+      setAllDocuments(docs)
+    } catch { /* counts will be stale but not break */ }
+  }, [])
 
   const loadTags = useCallback(async () => {
     try {
@@ -43,9 +52,8 @@ export default function DocumentManager() {
   }, [])
 
   useEffect(() => {
-    loadDocuments()
-    loadTags()
-  }, [loadDocuments, loadTags])
+    Promise.all([loadDocuments(), loadTags(), loadAllDocuments()]).finally(() => setLoading(false))
+  }, [loadDocuments, loadTags, loadAllDocuments])
 
   useEffect(() => {
     if (!selectedId) { setSelectedDoc(null); return }
@@ -59,6 +67,7 @@ export default function DocumentManager() {
       await uploadDocuments(files, activeTag ? [activeTag] : undefined)
       setStatus('Upload complete.')
       await loadDocuments()
+      await loadAllDocuments()
       await loadTags()
     } catch {
       setStatus('Upload failed.')
@@ -73,6 +82,7 @@ export default function DocumentManager() {
       const result = await syncDocuments()
       setStatus(`Sync complete. Added: ${result.added.length}, Removed: ${result.removed.length}`)
       await loadDocuments()
+      await loadAllDocuments()
       await loadTags()
     } catch {
       setStatus('Sync failed.')
@@ -94,6 +104,7 @@ export default function DocumentManager() {
       if (activeTag === name) setActiveTag(null)
       await loadTags()
       await loadDocuments()
+      await loadAllDocuments()
     } catch {
       setStatus('Failed to delete tag.')
     }
@@ -103,6 +114,7 @@ export default function DocumentManager() {
     try {
       const updated = await updateDocument(id, data)
       setDocuments(prev => prev.map(d => d.id === id ? updated : d))
+      setAllDocuments(prev => prev.map(d => d.id === id ? updated : d))
       if (selectedId === id) setSelectedDoc(updated)
       await loadTags()
     } catch {
@@ -114,6 +126,7 @@ export default function DocumentManager() {
     try {
       await deleteDocument(id)
       setDocuments(prev => prev.filter(d => d.id !== id))
+      setAllDocuments(prev => prev.filter(d => d.id !== id))
       if (selectedId === id) { setSelectedId(null); setSelectedDoc(null) }
       await loadTags()
     } catch {
@@ -121,13 +134,22 @@ export default function DocumentManager() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="document-manager">
+        <h1>Documents</h1>
+        <div className="loading">Loading...</div>
+      </div>
+    )
+  }
+
   return (
-    <div>
-      <h1 style={{ marginBottom: 'var(--space-lg)' }}>Documents</h1>
+    <div className="document-manager">
+      <h1>Documents</h1>
       <div className="document-manager-layout">
         <TagSidebar
           tags={tags}
-          documents={documents}
+          allDocuments={allDocuments}
           activeTag={activeTag}
           onSelectTag={setActiveTag}
           onCreateTag={handleCreateTag}

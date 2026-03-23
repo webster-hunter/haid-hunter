@@ -3,19 +3,19 @@ import type { DocumentMeta } from '../../api/documents'
 
 interface TagSidebarProps {
   tags: string[]
-  documents: DocumentMeta[]
+  allDocuments: DocumentMeta[]
   activeTag: string | null
   onSelectTag: (tag: string | null) => void
   onCreateTag: (name: string) => void
   onDeleteTag: (name: string) => void
 }
 
-export function TagSidebar({ tags, documents, activeTag, onSelectTag, onCreateTag, onDeleteTag }: TagSidebarProps) {
+export function TagSidebar({ tags, allDocuments, activeTag, onSelectTag, onCreateTag, onDeleteTag }: TagSidebarProps) {
   const [showInput, setShowInput] = useState(false)
   const [newTagName, setNewTagName] = useState('')
 
-  const totalCount = documents.length
-  const getTagCount = (tag: string) => documents.filter(d => d.tags.includes(tag)).length
+  const totalCount = allDocuments.length
+  const getTagCount = (tag: string) => allDocuments.filter(d => d.tags.includes(tag)).length
 
   const handleCreateTag = () => {
     const trimmed = newTagName.trim()
