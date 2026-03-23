@@ -46,3 +46,31 @@ def test_cascade_delete(tmp_path):
     docs = conn.execute("SELECT * FROM application_documents WHERE application_id = ?", (app_id,)).fetchall()
     assert len(docs) == 0
     conn.close()
+
+
+def test_tasks_table_exists(tmp_path):
+    db_path = tmp_path / "test.db"
+    init_db(db_path)
+    conn = get_connection(db_path)
+    rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'").fetchall()
+    conn.close()
+    assert len(rows) == 1
+
+
+def test_settings_table_exists(tmp_path):
+    db_path = tmp_path / "test.db"
+    init_db(db_path)
+    conn = get_connection(db_path)
+    rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'").fetchall()
+    conn.close()
+    assert len(rows) == 1
+
+
+def test_default_daily_target_seeded(tmp_path):
+    db_path = tmp_path / "test.db"
+    init_db(db_path)
+    conn = get_connection(db_path)
+    row = conn.execute("SELECT value FROM settings WHERE key = 'daily_application_target'").fetchone()
+    conn.close()
+    assert row is not None
+    assert row["value"] == "5"
