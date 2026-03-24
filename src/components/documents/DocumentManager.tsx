@@ -12,6 +12,7 @@ import {
   deleteDocument,
   syncDocuments,
 } from '../../api/documents'
+import { analyzeDocuments } from '../../api/extraction'
 import { fetchTags, createTag, deleteTag } from '../../api/tags'
 import type { DocumentMeta } from '../../api/documents'
 
@@ -65,10 +66,18 @@ export default function DocumentManager() {
     try {
       setStatus('Uploading...')
       await uploadDocuments(files, activeTag ? [activeTag] : undefined)
-      setStatus('Upload complete.')
+      setStatus('Upload complete. Analyzing documents...')
       await loadDocuments()
       await loadAllDocuments()
       await loadTags()
+      analyzeDocuments()
+        .then(result => {
+          localStorage.setItem('extraction_result', JSON.stringify(result))
+          setStatus('Upload complete. Document analysis ready — check your Profile.')
+        })
+        .catch(() => {
+          setStatus('Upload complete. Document analysis failed.')
+        })
     } catch {
       setStatus('Upload failed.')
     }
