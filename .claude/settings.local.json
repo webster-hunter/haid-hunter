@@ -25,7 +25,9 @@
       "Bash(python -m pytest tests/test_profile_service.py -v)",
       "Bash(python -m pytest tests/test_profile_service.py tests/test_profile_api.py -v)",
       "Bash(python -m pytest -v)",
-      "Bash(python -m pytest tests/test_interview_api.py -v)"
+      "Bash(python -m pytest tests/test_interview_api.py -v)",
+      "Bash(npx vitest:*)",
+      "Bash(ls c:/Users/whweb/Code/haid-hunter/README*)"
     ]
   }
 }

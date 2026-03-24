@@ -7,3 +7,5 @@ data/
 __pycache__/
 backend/.venv/
 .vite/
+.superpowers/
+CLAUDE.md
