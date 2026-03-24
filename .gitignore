@@ -9,3 +9,4 @@ backend/.venv/
 .vite/
 .superpowers/
 .claude/
+CLAUDE.md

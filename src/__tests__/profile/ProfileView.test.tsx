@@ -5,7 +5,7 @@ import ProfileView from '../../components/profile/ProfileView'
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
     ok: true,
-    json: async () => ({ summary: '', skills: [], experience: [], education: [], certifications: [], objectives: '' }),
+    json: async () => ({ summary: '', skills: [], experience: [], education: [], certifications: [], objectives: [] }),
   }))
 })
 

@@ -6,8 +6,15 @@ export default function EducationList({ education }: { education: Education[] })
     <div className="education-list">
       {education.map((e, i) => (
         <div key={i} className="education-item">
-          <strong>{e.degree}</strong> — {e.institution}
-          <span className="education-dates">{e.start_date} — {e.end_date}</span>
+          <div className="education-header">
+            <strong>{e.degree}</strong>{e.field ? ` in ${e.field}` : ''} — {e.institution}
+            <span className="education-dates">{e.start_date} — {e.end_date ?? 'Present'}</span>
+          </div>
+          {e.details && e.details.length > 0 && (
+            <ul className="item-details">
+              {e.details.map((d, j) => <li key={j}>{d}</li>)}
+            </ul>
+          )}
         </div>
       ))}
     </div>
