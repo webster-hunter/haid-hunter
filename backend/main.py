@@ -16,6 +16,7 @@ from backend.routers.applications import router as applications_router
 from backend.routers.settings import router as settings_router
 from backend.routers.tasks import router as tasks_router
 from backend.routers.dashboard import router as dashboard_router
+from backend.routers.extraction import router as extraction_router
 from backend.services.database import init_db
 from backend.services.encryption import EncryptionService
 
@@ -38,6 +39,7 @@ app.include_router(applications_router)
 app.include_router(settings_router)
 app.include_router(tasks_router)
 app.include_router(dashboard_router)
+app.include_router(extraction_router)
 
 
 @app.on_event("startup")

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchProfile, type Profile } from '../../api/profile'
 import ProfilePanel from './ProfilePanel'
+import ExtractionPanel from './ExtractionPanel'
 import InterviewChat from './InterviewChat'
 
 export default function ProfileView() {
@@ -20,6 +21,7 @@ export default function ProfileView() {
       <h1>Profile</h1>
       <div className="profile-layout">
         <div className="profile-main" data-testid="profile-panel">
+          <ExtractionPanel onAccept={handleProfileUpdate} />
           {profile && <ProfilePanel profile={profile} onUpdate={handleProfileUpdate} />}
         </div>
         <div className={`profile-chat ${chatCollapsed ? 'collapsed' : ''}`} data-testid="interview-chat">
