@@ -27,7 +27,7 @@ def test_put_profile(tmp_path):
     setup_test_env(tmp_path)
     client = TestClient(app)
     profile = {"summary": "Engineer", "skills": [], "experience": [],
-               "education": [], "certifications": [], "objectives": ""}
+               "education": [], "certifications": [], "objectives": []}
     response = client.put("/api/profile", json=profile)
     assert response.status_code == 200
     get_response = client.get("/api/profile")

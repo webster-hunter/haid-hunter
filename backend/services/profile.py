@@ -10,7 +10,7 @@ EMPTY_PROFILE = {
     "experience": [],
     "education": [],
     "certifications": [],
-    "objectives": "",
+    "objectives": [],
 }
 
 

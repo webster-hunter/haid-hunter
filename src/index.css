@@ -374,12 +374,17 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 
 /* Education list */
 .education-list { display: flex; flex-direction: column; gap: var(--space-sm); }
-.education-item { display: flex; align-items: baseline; gap: var(--space-sm); flex-wrap: wrap; font-size: 14px; }
+.education-item { display: flex; flex-direction: column; gap: 2px; font-size: 14px; border-left: 2px solid var(--color-primary); padding-left: var(--space-md); }
+.education-header { display: flex; align-items: baseline; gap: var(--space-sm); flex-wrap: wrap; }
 .education-dates { margin-left: auto; font-size: 12px; color: var(--color-muted); }
+.item-details { margin: 0; padding-left: var(--space-lg); font-size: 13px; color: var(--color-text); }
+.item-details li { margin-bottom: 2px; }
 
 /* Certification list */
 .certification-list { display: flex; flex-direction: column; gap: var(--space-sm); }
-.certification-item { font-size: 14px; color: var(--color-text); }
+.certification-item { display: flex; align-items: baseline; gap: var(--space-sm); flex-wrap: wrap; font-size: 14px; color: var(--color-text); border-left: 2px solid var(--color-primary); padding-left: var(--space-md); }
+.certification-date { margin-left: auto; font-size: 12px; color: var(--color-muted); }
+.objectives-list { padding-left: var(--space-lg); margin: 0; font-size: 14px; }
 
 /* Interview chat inner layout */
 .interview-chat-inner { display: flex; flex-direction: column; height: 100%; padding: var(--space-md); padding-top: calc(var(--space-md) + 32px); overflow: hidden; }
@@ -416,10 +421,25 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 .section-editor textarea { background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm); color: var(--color-text); font-size: 13px; resize: vertical; font-family: inherit; }
 .section-editor input, .section-editor select { background: var(--color-elevated); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 6px 10px; color: var(--color-text); font-size: 13px; outline: none; }
 .section-editor input:focus, .section-editor select:focus { border-color: var(--color-primary); }
-.editor-row { display: flex; gap: var(--space-xs); align-items: center; flex-wrap: wrap; }
-.editor-group { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm); background: var(--color-bg); border-radius: var(--radius-md); border: 1px solid var(--color-border); }
+.editor-field { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.editor-field-label { font-size: 11px; color: var(--color-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.editor-field-error { font-size: 11px; color: var(--color-error); }
+.editor-row { display: flex; gap: var(--space-sm); align-items: flex-end; flex-wrap: wrap; }
+.editor-group { position: relative; display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-md) var(--space-sm); background: var(--color-bg); border-radius: var(--radius-md); border: 1px solid var(--color-border); max-width: 600px; }
+.editor-group-remove { position: absolute; top: var(--space-xs); right: var(--space-xs); background: transparent; border: none; color: var(--color-muted); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: var(--radius-sm); line-height: 1; transition: color var(--transition-base); }
+.editor-group-remove:hover { color: var(--color-error); }
 .accomplishment-row { display: flex; gap: var(--space-xs); align-items: center; }
 .accomplishment-row input { flex: 1; }
+.editor-chip-row { display: flex; gap: var(--space-xs); align-items: center; }
+.editor-chip-row input { flex: 1; }
+.editor-remove { background: transparent; border: none; color: var(--color-muted); font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); line-height: 1; transition: color var(--transition-base); }
+.editor-remove:hover { color: var(--color-error); }
+.editor-checkbox { display: flex; align-items: center; gap: var(--space-xs); font-size: 13px; color: var(--color-muted); cursor: pointer; align-self: flex-end; padding-bottom: 6px; }
+.editor-checkbox input[type="checkbox"] { accent-color: var(--color-primary); cursor: pointer; }
+.editor-current-label { font-size: 13px; color: var(--color-success); font-weight: 500; padding: 6px 0; }
+.editor-sub-section { display: flex; flex-direction: column; gap: var(--space-xs); padding-left: var(--space-sm); }
+.editor-sub-label { font-size: 12px; color: var(--color-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.editor-objective-input { flex: 1; }
 .editor-actions { display: flex; gap: var(--space-sm); margin-top: var(--space-xs); }
 .editor-actions button { background: var(--color-primary); border: none; border-radius: var(--radius-sm); padding: 6px 14px; color: #fff; font-size: 13px; cursor: pointer; }
 .editor-actions button:last-child { background: transparent; border: 1px solid var(--color-border); color: var(--color-muted); }

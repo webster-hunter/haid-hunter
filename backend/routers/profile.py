@@ -22,6 +22,7 @@ class EducationEntry(BaseModel):
     degree: str
     field: str | None = None
     year: str | None = None
+    details: list[str] = []
 
 
 class CertificationEntry(BaseModel):
@@ -36,13 +37,23 @@ class ProfileRequest(BaseModel):
     experience: list[ExperienceEntry] = []
     education: list[EducationEntry] = []
     certifications: list[CertificationEntry] = []
-    objectives: str = ""
+    objectives: list[str] = []
 
-    @field_validator("summary", "objectives")
+    @field_validator("summary")
     @classmethod
     def max_text_length(cls, v: str) -> str:
         if len(v) > 5000:
             raise ValueError("Max 5000 characters")
+        return v
+
+    @field_validator("objectives")
+    @classmethod
+    def max_objectives(cls, v: list[str]) -> list[str]:
+        if len(v) > 50:
+            raise ValueError("Max 50 objectives")
+        for item in v:
+            if len(item) > 500:
+                raise ValueError("Each objective max 500 characters")
         return v
 
     @field_validator("skills")
