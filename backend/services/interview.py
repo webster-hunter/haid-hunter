@@ -46,11 +46,15 @@ def read_document_contents(docs_dir: Path, metadata: dict) -> str:
         mime = meta.get("mime_type", "")
         if mime in ("text/plain", "text/markdown", "text/csv"):
             file_path = docs_dir / meta["stored_name"]
+            if not file_path.resolve().is_relative_to(docs_dir.resolve()):
+                continue
             if file_path.exists():
                 text = file_path.read_text(errors="ignore")
                 contents.append(f"--- {meta['original_name']} ---\n{text[:5000]}")
         elif mime == "application/pdf":
             file_path = docs_dir / meta["stored_name"]
+            if not file_path.resolve().is_relative_to(docs_dir.resolve()):
+                continue
             if file_path.exists():
                 try:
                     import pdfplumber

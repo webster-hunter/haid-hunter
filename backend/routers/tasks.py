@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from backend.config import DATABASE_PATH
 from backend.services.database import get_connection
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -53,6 +56,7 @@ async def create_task(body: CreateTaskRequest):
         )
         conn.commit()
         row = conn.execute("SELECT * FROM tasks WHERE id = ?", (cursor.lastrowid,)).fetchone()
+        logger.info("Task created: %d (%s)", cursor.lastrowid, body.title)
         return dict(row)
     finally:
         conn.close()
@@ -112,6 +116,7 @@ async def delete_task(task_id: int):
             raise HTTPException(status_code=404, detail="Task not found")
         conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
         conn.commit()
+        logger.info("Task deleted: %d", task_id)
         return {"status": "deleted"}
     finally:
         conn.close()

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -6,6 +7,8 @@ from backend.services.database import get_connection, init_db
 from backend.services.encryption import EncryptionService
 from backend.services.metadata import MetadataService
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
@@ -102,13 +105,16 @@ async def get_application(app_id: int, reveal_credentials: bool = False):
         conn.close()
         raise HTTPException(status_code=404, detail="Application not found")
     result = row_to_dict(row, reveal_credentials)
+    if reveal_credentials:
+        logger.warning("Credentials revealed for application %d", app_id)
     docs = conn.execute("SELECT * FROM application_documents WHERE application_id = ?", (app_id,)).fetchall()
     conn.close()
     meta_svc = get_metadata_service()
     try:
         meta_data = meta_svc.read()
         files_meta = meta_data.get("files", {})
-    except Exception:
+    except (FileNotFoundError, ValueError, KeyError) as e:
+        logger.warning("Failed to read document metadata: %s", e)
         files_meta = {}
     enriched_docs = []
     for d in docs:
@@ -139,6 +145,7 @@ async def create_application(body: CreateApplicationRequest):
     app_id = cursor.lastrowid
     row = conn.execute("SELECT * FROM applications WHERE id = ?", (app_id,)).fetchone()
     conn.close()
+    logger.info("Application created: %d (%s at %s)", app_id, body.position, body.company)
     return row_to_dict(row)
 
 
@@ -168,6 +175,7 @@ async def delete_application(app_id: int):
     conn.execute("DELETE FROM applications WHERE id = ?", (app_id,))
     conn.commit()
     conn.close()
+    logger.info("Application deleted: %d", app_id)
     return {"status": "deleted"}
 
 
@@ -178,6 +186,7 @@ async def update_status(app_id: int, body: UpdateStatusRequest):
     conn.execute("UPDATE applications SET status=?, closed_reason=?, updated_at=? WHERE id=?",
                  (body.status, body.closed_reason, now, app_id))
     conn.commit()
+    logger.info("Application %d status changed to '%s'", app_id, body.status)
     row = conn.execute("SELECT * FROM applications WHERE id = ?", (app_id,)).fetchone()
     conn.close()
     if not row:

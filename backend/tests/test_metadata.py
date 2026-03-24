@@ -105,3 +105,17 @@ def test_delete_tag_removes_from_files(tmp_path):
     service.delete_tag("engineering")
     data = service.read()
     assert "engineering" not in data["files"][result["id"]]["tags"]
+
+
+def test_add_file_sanitizes_path_traversal(tmp_path):
+    docs_dir = tmp_path / "documents"
+    docs_dir.mkdir()
+    service = MetadataService(docs_dir)
+    result = service.add_file("../../evil.txt", b"malicious", tags=[])
+    assert result["original_name"] == "evil.txt"
+    assert "evil.txt" in result["stored_name"]
+    assert "../" not in result["stored_name"]
+    # File should be stored inside docs_dir
+    stored_path = docs_dir / result["stored_name"]
+    assert stored_path.exists()
+    assert stored_path.resolve().is_relative_to(docs_dir.resolve())

@@ -32,18 +32,25 @@ class MetadataService:
         with self._lock:
             self._write(data)
 
+    def _check_path(self, file_path: Path) -> Path:
+        """Verify resolved path stays within docs_dir."""
+        if not file_path.resolve().is_relative_to(self.docs_dir.resolve()):
+            raise ValueError("Invalid file path")
+        return file_path
+
     def add_file(self, original_name: str, file_bytes: bytes, tags: list[str] | None = None) -> dict:
         file_id = uuid.uuid4().hex[:8]
-        stored_name = f"{file_id}_{original_name}"
-        file_path = self.docs_dir / stored_name
+        safe_name = Path(original_name).name
+        stored_name = f"{file_id}_{safe_name}"
+        file_path = self._check_path(self.docs_dir / stored_name)
         file_path.write_bytes(file_bytes)
 
-        mime_type, _ = mimetypes.guess_type(original_name)
+        mime_type, _ = mimetypes.guess_type(safe_name)
 
         entry = {
-            "original_name": original_name,
+            "original_name": safe_name,
             "stored_name": stored_name,
-            "display_name": original_name,
+            "display_name": safe_name,
             "tags": tags or [],
             "uploaded_at": datetime.now(timezone.utc).isoformat(),
             "size_bytes": len(file_bytes),
@@ -75,7 +82,7 @@ class MetadataService:
             if file_id not in data["files"]:
                 raise KeyError(f"File {file_id} not found")
             stored_name = data["files"][file_id]["stored_name"]
-            file_path = self.docs_dir / stored_name
+            file_path = self._check_path(self.docs_dir / stored_name)
             if file_path.exists():
                 file_path.unlink()
             del data["files"][file_id]

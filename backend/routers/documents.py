@@ -1,9 +1,13 @@
+import logging
+import magic
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
-from backend.config import DOCUMENTS_DIR, ALLOWED_EXTENSIONS, MAX_UPLOAD_SIZE
+from backend.config import DOCUMENTS_DIR, ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE
 from backend.services.metadata import MetadataService
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -44,6 +48,8 @@ async def get_document_content(file_id: str, download: bool = False):
     except KeyError:
         raise HTTPException(status_code=404, detail="Document not found")
     file_path = service.docs_dir / meta["stored_name"]
+    if not file_path.resolve().is_relative_to(service.docs_dir.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid file path")
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found on disk")
     if download:
@@ -84,7 +90,16 @@ async def upload_documents(files: list[UploadFile] = File(...), tags: str | None
         if len(content) > MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=400, detail=f"File too large: {file.filename}")
 
+        detected_mime = magic.from_buffer(content[:2048], mime=True)
+        # application/octet-stream means magic couldn't determine type — trust the extension check
+        if detected_mime != "application/octet-stream" and detected_mime not in ALLOWED_MIME_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File content type '{detected_mime}' does not match an allowed type",
+            )
+
         result = service.add_file(file.filename or "unnamed", content, tags=tag_list)
+        logger.info("Document uploaded: %s (detected: %s)", file.filename, detected_mime)
         results.append(result)
 
     return results
@@ -105,6 +120,7 @@ async def delete_document(file_id: str):
     service = get_service()
     try:
         service.delete_file(file_id)
+        logger.info("Document deleted: %s", file_id)
         return {"status": "deleted"}
     except KeyError:
         raise HTTPException(status_code=404, detail="Document not found")
