@@ -2,7 +2,8 @@ import uuid
 import json
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from backend.config import ANTHROPIC_API_KEY
+from backend.config import get_api_key
+from backend.services.document_reader import read_document_contents
 
 SESSION_TTL = timedelta(minutes=30)
 MAX_SESSIONS = 20
@@ -20,7 +21,7 @@ def cleanup_expired_sessions():
 
 def get_claude_client():
     import anthropic
-    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    return anthropic.Anthropic(api_key=get_api_key())
 
 
 SYSTEM_PROMPT = """You are a career profile interview assistant for hAId-hunter, a job application tool.
@@ -50,40 +51,6 @@ Focus on:
 - Details that differentiate them from other candidates
 
 Be conversational but focused. One question at a time. Base your questions on what you see in their documents and current profile."""
-
-
-def read_document_contents(docs_dir: Path, metadata: dict) -> str:
-    contents = []
-    for file_id, meta in metadata.get("files", {}).items():
-        mime = meta.get("mime_type", "")
-        if mime in ("text/plain", "text/markdown", "text/csv"):
-            file_path = docs_dir / meta["stored_name"]
-            if not file_path.resolve().is_relative_to(docs_dir.resolve()):
-                continue
-            if file_path.exists():
-                text = file_path.read_text(errors="ignore")
-                contents.append(f"--- {meta['original_name']} ---\n{text[:5000]}")
-        elif mime == "application/pdf":
-            file_path = docs_dir / meta["stored_name"]
-            if not file_path.resolve().is_relative_to(docs_dir.resolve()):
-                continue
-            if file_path.exists():
-                try:
-                    import pdfplumber
-                    with pdfplumber.open(file_path) as pdf:
-                        pages_text = []
-                        for page in pdf.pages:
-                            page_text = page.extract_text()
-                            if page_text:
-                                pages_text.append(page_text)
-                        extracted = "\n".join(pages_text)[:5000]
-                    contents.append(f"--- {meta['original_name']} ---\n{extracted}")
-                except ImportError:
-                    contents.append(
-                        f"--- {meta['original_name']} ---\n"
-                        f"[PDF file - text extraction not available]"
-                    )
-    return "\n\n".join(contents) if contents else "No previewable documents found."
 
 
 def start_session(profile: dict, doc_contents: str) -> tuple[str, str]:

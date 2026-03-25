@@ -189,6 +189,21 @@ describe('SectionEditor', () => {
     })
   })
 
+  describe('objectives', () => {
+    it('renders a list of sentence inputs', () => {
+      render(<SectionEditor section="objectives" data={['Get promoted', 'Learn Rust']} onSave={onSave} onCancel={onCancel} />)
+      const inputs = screen.getAllByPlaceholderText('Objective statement')
+      expect(inputs).toHaveLength(2)
+      expect(inputs[0]).toHaveValue('Get promoted')
+      expect(inputs[1]).toHaveValue('Learn Rust')
+    })
+
+    it('can add a new objective', () => {
+      render(<SectionEditor section="objectives" data={['Get promoted']} onSave={onSave} onCancel={onCancel} />)
+      fireEvent.click(screen.getByText('+ Add Objective'))
+      expect(screen.getAllByPlaceholderText('Objective statement')).toHaveLength(2)
+    })
+  })
 
   describe('sorting on save', () => {
     it('sorts experience most recent first', async () => {

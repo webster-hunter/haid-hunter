@@ -1,6 +1,6 @@
 node_modules/
 dist/
-documents/
+/documents/
 data/
 .env
 *.pyc

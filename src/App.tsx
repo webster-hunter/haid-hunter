@@ -6,6 +6,7 @@ const Dashboard = lazy(() => import('./components/home/Dashboard'))
 const DocumentManager = lazy(() => import('./components/documents/DocumentManager'))
 const ProfileView = lazy(() => import('./components/profile/ProfileView'))
 const ApplicationManager = lazy(() => import('./components/applications/ApplicationManager'))
+const SettingsView = lazy(() => import('./components/settings/SettingsView'))
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/documents" element={<DocumentManager />} />
             <Route path="/profile" element={<ProfileView />} />
             <Route path="/applications" element={<ApplicationManager />} />
+            <Route path="/settings" element={<SettingsView />} />
           </Routes>
         </Suspense>
       </main>
