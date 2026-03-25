@@ -103,7 +103,8 @@ Continues an existing interview session.
 ```
 
 **Behavior:**
-- Calls `query()` with `resume: session_id`
+- Resumes the SDK session via `query({ prompt: message, options: { resume: session_id } })`
+- The SDK's session resumption preserves full conversation context from prior turns
 - Same tool/permission config as start
 - Parses suggestions from response
 
@@ -215,13 +216,54 @@ The service returns structured error JSON with appropriate HTTP status codes:
 | SDK query failure | 502 |
 | Timeout | 504 |
 
+### Timeout Configuration
+
+LLM calls can take 30-60+ seconds. The Python `claude_client.py` must use explicit timeout values with `httpx.AsyncClient`:
+
+- Interview start/message: 120 seconds
+- Extraction: 120 seconds
+- Posting analysis: 90 seconds
+
+Default `httpx` timeout (5 seconds) will cause frequent 504s if not overridden.
+
+### Security Note
+
+`permissionMode: "bypassPermissions"` is used because this is a headless backend service with no interactive user. This is acceptable because:
+- The Node service only listens on localhost (not exposed to the network)
+- Tool access is explicitly scoped via `allowedTools` per endpoint
+- `cwd` is constrained to the documents directory for file operations
+- `documents_path` is always resolved from the server-side `DOCUMENTS_DIR` config, never from user input
+
+## Interview Session State
+
+The interview feature has two layers of session state that must be correlated:
+
+**SDK session** — managed by the Agent SDK, identified by `session_id`. Contains the full conversation history and Claude's context. Resumed via `query({ options: { resume: session_id } })`.
+
+**Python session** — managed by FastAPI's interview router in `_sessions` dict. Contains:
+- The SDK `session_id` (for forwarding to Node service)
+- Accumulated suggestions returned from each Node service call
+- Suggestion accept/reject state
+- TTL tracking (30 min expiry, max 20 concurrent)
+
+**Flow:**
+1. `/api/interview/start` → FastAPI calls Node `/interview/start` → receives `{ session_id, message, suggestions }`
+2. FastAPI creates a Python session keyed by `session_id`, stores the suggestions indexed by `suggestion_id`
+3. `/api/interview/message` → FastAPI forwards `session_id` + user message to Node → receives `{ message, suggestions }`
+4. FastAPI appends new suggestions to the Python session's suggestion store
+5. `/api/interview/accept` / `/reject` → FastAPI looks up the suggestion by ID in its local store, applies or discards it (no Node call needed)
+
+This means suggestion accept/reject remains entirely in Python — the Node service only handles LLM conversation.
+
 ## Python Backend Changes
 
 ### Removed
 
 - `anthropic` Python package dependency
+- `cryptography` Python package dependency (was used by `encryption.py` for API key Fernet encryption)
 - `backend/services/interview.py` — LLM logic moves to Node service
-- `backend/services/extraction.py` — LLM logic moves to Node service
+- `backend/services/extraction.py` — LLM call logic moves to Node service. **Note:** `merge_suggestions()` is pure business logic and must be preserved — move it into `backend/routers/extraction.py` or a new `backend/services/extraction_utils.py`
+- `backend/services/document_reader.py` — the Node service reads documents directly via SDK `Read`/`Glob` tools. If document preview or other non-LLM features need text extraction later, this can be re-added.
 - `backend/routers/settings.py` API key endpoints (`GET/PUT/DELETE/POST /api/settings/api-key/*`)
 - `backend/services/encryption.py` — no longer needed for API key storage
 - `config.py` API key resolution logic (`get_api_key`, `build_claude_client`)
@@ -241,13 +283,39 @@ The service returns structured error JSON with appropriate HTTP status codes:
 - Profile service (CRUD on `.profile.json`)
 - Document management
 - Application manager
-- All frontend code and API modules
+
+### Frontend Changes
+
+Most frontend code is unaffected, but these files require updates:
+
+- **`src/api/settings.ts`** — remove API key management functions (`getApiKeyStatus`, `setApiKey`, `deleteApiKey`, `testApiKey`). Replace with a service health check call if the Settings page is retained.
+- **`src/components/settings/SettingsView.tsx`** — remove API key configuration UI. Simplify to show Claude service status or other settings.
+- **`src/api/interview.ts`** — update `startInterview` response type to include `suggestions[]` (currently only returns `{ session_id, message }`)
+- **`src/__tests__/settings/SettingsView.test.tsx`** — rewrite to match simplified Settings page
+
+### New: Posting Analysis Route
+
+**`backend/routers/posting.py`** — new router at `/api/posting`.
+
+**`POST /api/posting/analyze`**
+- Request: `{ "url": "https://..." }`
+- Reads current profile via `ProfileService`, forwards URL + profile to Node `/analyze-posting`
+- Response: `{ "key_requirements": [...], "emphasis_areas": [...], "keywords": [...] }`
+- Rate limited (5 requests/minute)
+
+### Schema Drift Mitigation
+
+The profile schema is defined in two places: `claude-service/src/schema.ts` (for prompt injection) and `backend/routers/profile.py` (Pydantic models for validation). To prevent drift:
+
+- The Node service schema is the prompt-facing representation (human-readable, for Claude). It does not perform validation.
+- The Python Pydantic models remain the source of truth for data validation.
+- If the profile model changes, both must be updated. This is an acceptable trade-off for a locally-hosted single-developer project.
 
 ## Dev Workflow
 
 ### Starting All Services
 
-Root `package.json` scripts using `concurrently`:
+Root `package.json` scripts using `concurrently` (add as a dev dependency: `npm i -D concurrently`):
 
 ```json
 {
@@ -286,7 +354,7 @@ The Node service exposes `GET /health`. On startup, FastAPI logs a warning if th
 - Existing tests for profile, documents, applications **unchanged**
 - Interview router tests mock `httpx.AsyncClient` calls to the Claude service — verify correct proxying, session management, rate limiting, suggestion accept/reject
 - Extraction router tests mock the same way
-- `claude_client.py` tests verify timeout handling, error mapping (Node 500 → FastAPI 502), connection refused → 503
+- `claude_client.py` tests verify timeout handling, error mapping (Node 500 → FastAPI 502), and connection refused → FastAPI 503 (Service Unavailable)
 
 ### What We Don't Test
 
