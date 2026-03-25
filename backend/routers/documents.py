@@ -1,10 +1,11 @@
 import logging
 import magic
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from backend.config import DOCUMENTS_DIR, ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE
 from backend.services.metadata import MetadataService
+from backend.rate_limit import limiter
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,8 @@ async def get_document(file_id: str):
 
 
 @router.post("/upload")
-async def upload_documents(files: list[UploadFile] = File(...), tags: str | None = None):
+@limiter.limit("10/minute")
+async def upload_documents(request: Request, files: list[UploadFile] = File(...), tags: str | None = None):
     service = get_service()
     tag_list = [t.strip() for t in tags.split(",")] if tags else []
     results = []
@@ -91,8 +93,12 @@ async def upload_documents(files: list[UploadFile] = File(...), tags: str | None
             raise HTTPException(status_code=400, detail=f"File too large: {file.filename}")
 
         detected_mime = magic.from_buffer(content[:2048], mime=True)
-        # application/octet-stream means magic couldn't determine type — trust the extension check
-        if detected_mime != "application/octet-stream" and detected_mime not in ALLOWED_MIME_TYPES:
+        if detected_mime == "application/octet-stream":
+            raise HTTPException(
+                status_code=400,
+                detail=f"File content type for '{file.filename}' could not be verified",
+            )
+        if detected_mime not in ALLOWED_MIME_TYPES:
             raise HTTPException(
                 status_code=400,
                 detail=f"File content type '{detected_mime}' does not match an allowed type",

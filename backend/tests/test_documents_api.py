@@ -88,8 +88,8 @@ def test_sync_documents(tmp_path):
 def test_filter_by_tag(tmp_path):
     setup_test_env(tmp_path)
     client = TestClient(app)
-    client.post("/api/documents/upload", files={"files": ("a.txt", b"a", "text/plain")})
-    client.post("/api/documents/upload", files={"files": ("b.txt", b"b", "text/plain")})
+    client.post("/api/documents/upload", files={"files": ("a.txt", b"hello world content", "text/plain")})
+    client.post("/api/documents/upload", files={"files": ("b.txt", b"another text file", "text/plain")})
     docs = client.get("/api/documents").json()
     client.put(f"/api/documents/{docs[0]['id']}", json={"tags": ["resume"]})
     filtered = client.get("/api/documents?tag=resume")
@@ -99,8 +99,8 @@ def test_filter_by_tag(tmp_path):
 def test_search_documents(tmp_path):
     setup_test_env(tmp_path)
     client = TestClient(app)
-    client.post("/api/documents/upload", files={"files": ("resume.txt", b"a", "text/plain")})
-    client.post("/api/documents/upload", files={"files": ("cover.txt", b"b", "text/plain")})
+    client.post("/api/documents/upload", files={"files": ("resume.txt", b"my resume content", "text/plain")})
+    client.post("/api/documents/upload", files={"files": ("cover.txt", b"my cover letter", "text/plain")})
     result = client.get("/api/documents?search=resume")
     assert len(result.json()) == 1
 
@@ -120,6 +120,19 @@ def test_content_served_inline_by_default(tmp_path):
     response = client.get(f"/api/documents/{file_id}/content")
     content_disposition = response.headers.get("content-disposition", "")
     assert "attachment" not in content_disposition
+
+
+def test_upload_rejects_octet_stream_mime(tmp_path):
+    """Files whose MIME is application/octet-stream should be rejected — magic can't verify the content."""
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    # Random bytes that magic can't identify — will return application/octet-stream
+    response = client.post(
+        "/api/documents/upload",
+        files={"files": ("report.pdf", b"\x00\x01\x02\x03random", "application/pdf")},
+    )
+    assert response.status_code == 400
+    assert "could not be verified" in response.json()["detail"].lower()
 
 
 def test_content_served_as_attachment_when_download(tmp_path):

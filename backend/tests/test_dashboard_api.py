@@ -34,7 +34,6 @@ def setup_test_env(tmp_path):
         ],
         "education": [],
         "certifications": [],
-        "objectives": "",
     }))
 
     meta_service = MetadataService(docs_dir)
@@ -153,7 +152,7 @@ def test_dashboard_empty_profile(tmp_path):
     db_path = setup_test_env(tmp_path)
     client = TestClient(app)
     dashboard_mod._profile_service.put({
-        "summary": "", "skills": [], "experience": [], "education": [], "certifications": [], "objectives": ""
+        "summary": "", "skills": [], "experience": [], "activities": [], "education": [], "certifications": []
     })
     response = client.get("/api/dashboard")
     profile = response.json()["profile"]

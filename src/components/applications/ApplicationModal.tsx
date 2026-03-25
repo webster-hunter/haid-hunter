@@ -144,7 +144,9 @@ export default function ApplicationModal({ application, onClose }: Props) {
                     <option value="bookmarked">Bookmarked</option>
                     <option value="applied">Applied</option>
                     <option value="in_progress">In Progress</option>
+                    <option value="interviewing">Interviewing</option>
                     <option value="offer">Offer</option>
+                    <option value="rejected">Rejected</option>
                     <option value="closed">Closed</option>
                   </select>
                 </div>

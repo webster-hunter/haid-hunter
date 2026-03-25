@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { patchSection } from '../../api/profile'
-import type { Experience, Education, Certification } from '../../api/profile'
+import type { Experience, Activity, Education, Certification } from '../../api/profile'
 
 interface Props {
   section: string
@@ -22,6 +22,19 @@ function sortByDate<T extends { start_date: string; end_date: string | null }>(i
 
 function sortCertsByDate(items: Certification[]): Certification[] {
   return [...items].sort((a, b) => b.date.localeCompare(a.date))
+}
+
+function sortActivities(items: Activity[]): Activity[] {
+  return [...items].sort((a, b) => {
+    const hasA = !!(a.start_date || a.end_date)
+    const hasB = !!(b.start_date || b.end_date)
+    if (hasA !== hasB) return hasA ? -1 : 1
+    if (!hasA) return 0
+    const endA = a.end_date ?? '9999-99'
+    const endB = b.end_date ?? '9999-99'
+    if (endA !== endB) return endB.localeCompare(endA)
+    return (b.start_date || '').localeCompare(a.start_date || '')
+  })
 }
 
 function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
@@ -49,6 +62,15 @@ export default function SectionEditor({ section, data, onSave, onCancel }: Props
         if (!item.role.trim()) errs[`exp-${i}-role`] = 'Required'
         if (item.start_date && !DATE_PATTERN.test(item.start_date)) errs[`exp-${i}-start`] = 'Use YYYY-MM'
         if (item.end_date !== null && item.end_date && !DATE_PATTERN.test(item.end_date)) errs[`exp-${i}-end`] = 'Use YYYY-MM'
+      })
+    }
+
+    if (section === 'activities') {
+      const items = value as Activity[]
+      items.forEach((item, i) => {
+        if (!item.name.trim()) errs[`act-${i}-name`] = 'Required'
+        if (item.start_date && !DATE_PATTERN.test(item.start_date)) errs[`act-${i}-start`] = 'Use YYYY-MM'
+        if (item.end_date !== null && item.end_date && !DATE_PATTERN.test(item.end_date)) errs[`act-${i}-end`] = 'Use YYYY-MM'
       })
     }
 
@@ -80,6 +102,7 @@ export default function SectionEditor({ section, data, onSave, onCancel }: Props
     try {
       let sorted = value
       if (section === 'experience') sorted = sortByDate(value as Experience[])
+      else if (section === 'activities') sorted = sortActivities(value as Activity[])
       else if (section === 'education') sorted = sortByDate(value as Education[])
       else if (section === 'certifications') sorted = sortCertsByDate(value as Certification[])
       await patchSection(section, sorted)
@@ -195,6 +218,73 @@ export default function SectionEditor({ section, data, onSave, onCancel }: Props
     )
   }
 
+  if (section === 'activities') {
+    const items = value as Activity[]
+    const categories = ['Project', 'Volunteer', 'Interest', 'Other']
+    return (
+      <div className="section-editor">
+        {items.map((item, i) => (
+          <div key={i} className="editor-group">
+            <button className="editor-group-remove" onClick={() => setValue(items.filter((_, j) => j !== i))}>x</button>
+            <div className="editor-row">
+              <Field label="Name" error={errors[`act-${i}-name`]}>
+                <input value={item.name} onChange={e => { items[i] = { ...item, name: e.target.value }; setValue([...items]) }} placeholder="Name" />
+              </Field>
+              <Field label="Category">
+                <select value={item.category} onChange={e => { items[i] = { ...item, category: e.target.value }; setValue([...items]) }}>
+                  <option value="">Select...</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+            </div>
+            <div className="editor-row">
+              <Field label="URL">
+                <input value={item.url || ''} onChange={e => { items[i] = { ...item, url: e.target.value || undefined }; setValue([...items]) }} placeholder="https://..." />
+              </Field>
+            </div>
+            <div className="editor-row">
+              <Field label="Start Date" error={errors[`act-${i}-start`]}>
+                <input value={item.start_date || ''} onChange={e => { items[i] = { ...item, start_date: e.target.value || undefined }; setValue([...items]) }} placeholder="YYYY-MM" />
+              </Field>
+              {item.end_date !== null ? (
+                <Field label="End Date" error={errors[`act-${i}-end`]}>
+                  <input value={item.end_date || ''} onChange={e => { items[i] = { ...item, end_date: e.target.value || null }; setValue([...items]) }} placeholder="YYYY-MM" />
+                </Field>
+              ) : (
+                <Field label="End Date">
+                  <span className="editor-current-label">Present</span>
+                </Field>
+              )}
+              <label className="editor-checkbox">
+                <input
+                  type="checkbox"
+                  checked={item.end_date === null}
+                  onChange={e => {
+                    items[i] = { ...item, end_date: e.target.checked ? null : '' }
+                    setValue([...items])
+                  }}
+                />
+                Still active
+              </label>
+            </div>
+            <div className="editor-sub-section">
+              <span className="editor-sub-label">Details</span>
+              {(item.details || []).map((d, j) => (
+                <div key={j} className="accomplishment-row">
+                  <input value={d} onChange={e => { const details = [...(item.details || [])]; details[j] = e.target.value; items[i] = { ...item, details }; setValue([...items]) }} placeholder="Detail" />
+                  <button className="editor-remove" onClick={() => { const details = [...(item.details || [])]; details.splice(j, 1); items[i] = { ...item, details }; setValue([...items]) }}>x</button>
+                </div>
+              ))}
+              <button className="btn btn-secondary btn-sm" onClick={() => { items[i] = { ...item, details: [...(item.details || []), ''] }; setValue([...items]) }}>+ Detail</button>
+            </div>
+          </div>
+        ))}
+        <button className="btn btn-secondary btn-sm" onClick={() => setValue([...items, { name: '', category: '', url: '', details: [] }])}>+ Add Activity</button>
+        {actions}
+      </div>
+    )
+  }
+
   if (section === 'education') {
     const items = value as Education[]
     return (
@@ -279,27 +369,6 @@ export default function SectionEditor({ section, data, onSave, onCancel }: Props
           </div>
         ))}
         <button className="btn btn-secondary btn-sm" onClick={() => setValue([...items, { name: '', issuer: '', date: '' }])}>+ Add Certification</button>
-        {actions}
-      </div>
-    )
-  }
-
-  if (section === 'objectives') {
-    const objectives = value as string[]
-    return (
-      <div className="section-editor">
-        {objectives.map((obj, i) => (
-          <div key={i} className="editor-chip-row">
-            <input
-              value={obj}
-              onChange={e => { const next = [...objectives]; next[i] = e.target.value; setValue(next) }}
-              placeholder="Objective statement"
-              className="editor-objective-input"
-            />
-            <button className="editor-remove" onClick={() => setValue(objectives.filter((_, j) => j !== i))}>x</button>
-          </div>
-        ))}
-        <button className="btn btn-secondary btn-sm" onClick={() => setValue([...objectives, ''])}>+ Add Objective</button>
         {actions}
       </div>
     )

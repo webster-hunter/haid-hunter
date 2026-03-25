@@ -1,6 +1,10 @@
 import logging
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from backend.auth import require_auth
+from backend.rate_limit import limiter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,7 +23,14 @@ from backend.routers.dashboard import router as dashboard_router
 from backend.services.database import init_db
 from backend.services.encryption import EncryptionService
 
-app = FastAPI(title="hAId-hunter API")
+app = FastAPI(title="hAId-hunter API", dependencies=[Depends(require_auth)])
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
+
 
 app.add_middleware(
     CORSMiddleware,

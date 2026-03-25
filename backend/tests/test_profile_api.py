@@ -26,8 +26,8 @@ def test_get_profile_returns_scaffold(tmp_path):
 def test_put_profile(tmp_path):
     setup_test_env(tmp_path)
     client = TestClient(app)
-    profile = {"summary": "Engineer", "skills": [], "experience": [],
-               "education": [], "certifications": [], "objectives": []}
+    profile = {"summary": "Engineer", "skills": [], "experience": [], "activities": [],
+               "education": [], "certifications": []}
     response = client.put("/api/profile", json=profile)
     assert response.status_code == 200
     get_response = client.get("/api/profile")
@@ -38,9 +38,9 @@ def test_patch_section(tmp_path):
     setup_test_env(tmp_path)
     client = TestClient(app)
     client.get("/api/profile")  # init
-    response = client.patch("/api/profile/skills", json=[{"name": "Python", "proficiency": "advanced", "category": "technical"}])
+    response = client.patch("/api/profile/skills", json=["Python", "TypeScript"])
     assert response.status_code == 200
-    assert len(response.json()["skills"]) == 1
+    assert len(response.json()["skills"]) == 2
 
 
 def test_patch_invalid_section(tmp_path):
@@ -48,3 +48,55 @@ def test_patch_invalid_section(tmp_path):
     client = TestClient(app)
     response = client.patch("/api/profile/invalid", json="data")
     assert response.status_code == 400
+
+
+def test_patch_skills_rejects_non_list(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.get("/api/profile")  # init
+    response = client.patch("/api/profile/skills", json="not a list")
+    assert response.status_code == 422
+
+
+def test_patch_skills_rejects_non_strings(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.get("/api/profile")  # init
+    response = client.patch("/api/profile/skills", json=[{"name": "Python"}])
+    assert response.status_code == 422
+
+
+def test_patch_experience_rejects_missing_fields(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.get("/api/profile")  # init
+    response = client.patch("/api/profile/experience", json=[{"company": "Acme"}])
+    assert response.status_code == 422
+
+
+def test_patch_experience_accepts_valid_data(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.get("/api/profile")  # init
+    response = client.patch("/api/profile/experience", json=[
+        {"company": "Acme", "role": "Dev", "start_date": "2020-01", "end_date": None, "accomplishments": []}
+    ])
+    assert response.status_code == 200
+    assert response.json()["experience"][0]["company"] == "Acme"
+
+
+def test_patch_summary_rejects_non_string(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.get("/api/profile")  # init
+    response = client.patch("/api/profile/summary", json=123)
+    assert response.status_code == 422
+
+
+def test_patch_summary_accepts_string(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.get("/api/profile")  # init
+    response = client.patch("/api/profile/summary", json="Updated summary")
+    assert response.status_code == 200
+    assert response.json()["summary"] == "Updated summary"

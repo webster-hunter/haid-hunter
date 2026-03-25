@@ -90,7 +90,7 @@ def _build_tasks_section(conn) -> dict:
     ).fetchone()
     daily_target = int(setting["value"]) if setting else 5
 
-    today = date.today().isoformat()
+    today = datetime.now(timezone.utc).date().isoformat()
     applied_today = conn.execute(
         "SELECT COUNT(*) as cnt FROM applications WHERE status != 'bookmarked' AND date(created_at) = ?",
         (today,),
@@ -118,7 +118,7 @@ def _build_tasks_section(conn) -> dict:
                 interval = t["interval_days"] or 1
                 completed_dt = datetime.fromisoformat(completed_at)
                 next_due = completed_dt + timedelta(days=interval)
-                is_due = next_due.date() <= date.today()
+                is_due = next_due.date() <= datetime.now(timezone.utc).date()
 
         user_tasks.append({
             "id": t["id"],

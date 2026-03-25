@@ -101,6 +101,37 @@ describe('SectionEditor', () => {
     })
   })
 
+  describe('activities', () => {
+    const act = [{ name: 'haid-hunter', category: 'Project', url: 'https://github.com/example', details: ['Built with React'] }]
+
+    it('renders activity fields with labels', () => {
+      render(<SectionEditor section="activities" data={act} onSave={onSave} onCancel={onCancel} />)
+      expect(screen.getByText('Name')).toBeInTheDocument()
+      expect(screen.getByText('Category')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('haid-hunter')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('https://github.com/example')).toBeInTheDocument()
+    })
+
+    it('has a category dropdown', () => {
+      render(<SectionEditor section="activities" data={act} onSave={onSave} onCancel={onCancel} />)
+      expect(screen.getByDisplayValue('Project')).toBeInTheDocument()
+    })
+
+    it('validates required name on save', async () => {
+      const empty = [{ name: '', category: '', details: [] }]
+      render(<SectionEditor section="activities" data={empty} onSave={onSave} onCancel={onCancel} />)
+      fireEvent.click(screen.getByText('Save'))
+      expect(await screen.findByText('Required')).toBeInTheDocument()
+      expect(patchSection).not.toHaveBeenCalled()
+    })
+
+    it('renders details sub-section', () => {
+      render(<SectionEditor section="activities" data={act} onSave={onSave} onCancel={onCancel} />)
+      expect(screen.getByDisplayValue('Built with React')).toBeInTheDocument()
+      expect(screen.getByText('+ Detail')).toBeInTheDocument()
+    })
+  })
+
   describe('education', () => {
     const edu = [{ institution: 'MIT', degree: 'BS', field: 'CS', start_date: '2016-09', end_date: '2020-05', details: ['Dean\'s List'] }]
 
@@ -158,21 +189,6 @@ describe('SectionEditor', () => {
     })
   })
 
-  describe('objectives', () => {
-    it('renders a list of sentence inputs', () => {
-      render(<SectionEditor section="objectives" data={['Get promoted', 'Learn Rust']} onSave={onSave} onCancel={onCancel} />)
-      const inputs = screen.getAllByPlaceholderText('Objective statement')
-      expect(inputs).toHaveLength(2)
-      expect(inputs[0]).toHaveValue('Get promoted')
-      expect(inputs[1]).toHaveValue('Learn Rust')
-    })
-
-    it('can add a new objective', () => {
-      render(<SectionEditor section="objectives" data={['Get promoted']} onSave={onSave} onCancel={onCancel} />)
-      fireEvent.click(screen.getByText('+ Add Objective'))
-      expect(screen.getAllByPlaceholderText('Objective statement')).toHaveLength(2)
-    })
-  })
 
   describe('sorting on save', () => {
     it('sorts experience most recent first', async () => {

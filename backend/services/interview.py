@@ -1,9 +1,21 @@
 import uuid
 import json
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from backend.config import ANTHROPIC_API_KEY
 
+SESSION_TTL = timedelta(minutes=30)
+MAX_SESSIONS = 20
+
 _sessions: dict = {}
+
+
+def cleanup_expired_sessions():
+    """Remove sessions that have been inactive longer than SESSION_TTL."""
+    cutoff = datetime.now(timezone.utc) - SESSION_TTL
+    expired = [sid for sid, s in _sessions.items() if s.get("last_active", s.get("created_at", cutoff)) < cutoff]
+    for sid in expired:
+        del _sessions[sid]
 
 
 def get_claude_client():
@@ -22,7 +34,7 @@ When you want to suggest a profile update, include a JSON block in your response
 ```suggestion
 {
   "suggestion_id": "sug_<random>",
-  "section": "experience|skills|education|certifications|summary|objectives",
+  "section": "experience|skills|education|certifications|activities|summary",
   "action": "add|update|remove",
   "target": { ... },
   "original": "...",
@@ -75,7 +87,14 @@ def read_document_contents(docs_dir: Path, metadata: dict) -> str:
 
 
 def start_session(profile: dict, doc_contents: str) -> tuple[str, str]:
+    cleanup_expired_sessions()
+    if len(_sessions) >= MAX_SESSIONS:
+        # Evict the oldest session
+        oldest_sid = min(_sessions, key=lambda s: _sessions[s].get("last_active", datetime.min.replace(tzinfo=timezone.utc)))
+        del _sessions[oldest_sid]
+
     session_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
 
     messages = []
     system = f"{SYSTEM_PROMPT}\n\n## Current Profile\n```json\n{json.dumps(profile, indent=2)}\n```\n\n## Document Contents\n{doc_contents}"
@@ -98,6 +117,8 @@ def start_session(profile: dict, doc_contents: str) -> tuple[str, str]:
         "suggestions": {},
         "accepted_suggestions": [],
         "rejected_suggestions": [],
+        "created_at": now,
+        "last_active": now,
     }
 
     return session_id, assistant_msg
@@ -108,6 +129,7 @@ def send_message(session_id: str, user_message: str) -> dict:
         raise KeyError(f"Session {session_id} not found")
 
     session = _sessions[session_id]
+    session["last_active"] = datetime.now(timezone.utc)
     session["messages"].append({"role": "user", "content": user_message})
 
     client = get_claude_client()

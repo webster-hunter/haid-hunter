@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from backend.config import DOCUMENTS_DIR, PROFILE_PATH
 from backend.services.metadata import MetadataService
-from backend.services.profile import ProfileService
+from backend.services.profile import ProfileService, VALID_SECTIONS
 from backend.services import interview as interview_service
+from backend.rate_limit import limiter
 
 router = APIRouter(prefix="/api/interview", tags=["interview"])
 
@@ -45,7 +46,8 @@ class SuggestionRequest(BaseModel):
 
 
 @router.post("/start")
-async def start_interview():
+@limiter.limit("5/minute")
+async def start_interview(request: Request):
     _sync_sessions()
     profile = get_profile_service().get()
     metadata = get_metadata_service().read()
@@ -55,7 +57,8 @@ async def start_interview():
 
 
 @router.post("/message")
-async def send_message(body: MessageRequest):
+@limiter.limit("20/minute")
+async def send_message(request: Request, body: MessageRequest):
     _sync_sessions()
     try:
         result = interview_service.send_message(body.session_id, body.message)
@@ -76,14 +79,29 @@ async def accept_suggestion(body: SuggestionRequest):
 
     service = get_profile_service()
     profile = service.get()
-    section = suggestion["section"]
-    action = suggestion["action"]
+    section = suggestion.get("section")
+    action = suggestion.get("action")
     target = suggestion.get("target", {})
+
+    # Validate section
+    if section not in VALID_SECTIONS:
+        raise HTTPException(status_code=400, detail=f"Invalid suggestion section: {section}")
+
+    # Validate action
+    if action not in ("add", "update", "remove"):
+        raise HTTPException(status_code=400, detail=f"Invalid suggestion action: {action}")
+
+    # Validate index bounds for update/remove on list sections
+    if action in ("update", "remove") and isinstance(profile.get(section), list):
+        index = target.get("index")
+        if section != "summary" and index is not None:
+            if not isinstance(index, int) or index < 0 or index >= len(profile.get(section, [])):
+                raise HTTPException(status_code=400, detail=f"Index {index} out of bounds for section {section}")
 
     if action == "add" and isinstance(profile.get(section), list):
         profile[section].append(suggestion["proposed"])
     elif action == "update":
-        if section in ("summary", "objectives"):
+        if section == "summary":
             profile[section] = suggestion["proposed"]
         elif isinstance(profile.get(section), list):
             index = target.get("index")

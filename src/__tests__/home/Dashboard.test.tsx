@@ -92,4 +92,20 @@ describe('Dashboard', () => {
     expect(await screen.findByText(/failed to load/i)).toBeInTheDocument()
     expect(screen.getByText('Retry')).toBeInTheDocument()
   })
+
+  it('shows task error when toggle fails', async () => {
+    let callCount = 0
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string, opts?: RequestInit) => {
+      callCount++
+      if (opts?.method === 'PATCH') {
+        return Promise.resolve({ ok: false, status: 500 })
+      }
+      return Promise.resolve({ ok: true, json: async () => mockDashboardData })
+    }))
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    await screen.findByText('Review LinkedIn')
+    const checkbox = screen.getByTestId('task-checkbox-1')
+    fireEvent.click(checkbox)
+    expect(await screen.findByText(/failed/i)).toBeInTheDocument()
+  })
 })

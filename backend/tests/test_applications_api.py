@@ -62,7 +62,8 @@ def test_credentials_masked_by_default(tmp_path):
     assert response.json()["login_password"] == "***"
 
 
-def test_credentials_revealed(tmp_path):
+def test_credentials_revealed_requires_confirm_header(tmp_path):
+    """reveal_credentials=true without X-Confirm-Access header returns 403."""
     setup_test_env(tmp_path)
     client = TestClient(app)
     create = client.post("/api/applications", json={
@@ -71,8 +72,45 @@ def test_credentials_revealed(tmp_path):
     })
     app_id = create.json()["id"]
     response = client.get(f"/api/applications/{app_id}?reveal_credentials=true")
+    assert response.status_code == 403
+
+
+def test_credentials_revealed_with_confirm_header(tmp_path):
+    """reveal_credentials=true with X-Confirm-Access: true decrypts credentials."""
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    create = client.post("/api/applications", json={
+        "company": "Acme", "position": "Engineer", "status": "applied",
+        "login_email": "user@test.com", "login_password": "secret123"
+    })
+    app_id = create.json()["id"]
+    response = client.get(
+        f"/api/applications/{app_id}?reveal_credentials=true",
+        headers={"X-Confirm-Access": "true"},
+    )
+    assert response.status_code == 200
     assert response.json()["login_email"] == "user@test.com"
     assert response.json()["login_password"] == "secret123"
+
+
+def test_create_rejects_invalid_status(tmp_path):
+    """Creating an application with an invalid status returns 422."""
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    response = client.post("/api/applications", json={
+        "company": "Acme", "position": "Engineer", "status": "invalid_status"
+    })
+    assert response.status_code == 422
+
+
+def test_patch_rejects_invalid_status(tmp_path):
+    """Updating status to an invalid value returns 422."""
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    create = client.post("/api/applications", json={"company": "Acme", "position": "Engineer", "status": "bookmarked"})
+    app_id = create.json()["id"]
+    response = client.patch(f"/api/applications/{app_id}/status", json={"status": "garbage"})
+    assert response.status_code == 422
 
 
 def test_update_application(tmp_path):
@@ -83,6 +121,29 @@ def test_update_application(tmp_path):
     response = client.put(f"/api/applications/{app_id}", json={"company": "Acme Corp", "position": "Senior Engineer", "status": "applied"})
     assert response.status_code == 200
     assert response.json()["company"] == "Acme Corp"
+
+
+def test_update_preserves_omitted_fields(tmp_path):
+    """PUT with partial fields should not reset omitted fields to defaults."""
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    create = client.post("/api/applications", json={
+        "company": "Acme", "position": "Engineer", "status": "applied",
+        "has_referral": True, "referral_name": "Jane Doe",
+        "notes": "Important notes here"
+    })
+    app_id = create.json()["id"]
+    # Update only company and position, omit status/has_referral/notes
+    response = client.put(f"/api/applications/{app_id}", json={
+        "company": "Acme Corp", "position": "Senior Engineer"
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["company"] == "Acme Corp"
+    assert data["status"] == "applied"  # should NOT reset to "bookmarked"
+    assert data["has_referral"] == True  # should NOT reset to False
+    assert data["referral_name"] == "Jane Doe"
+    assert data["notes"] == "Important notes here"
 
 
 def test_delete_application(tmp_path):

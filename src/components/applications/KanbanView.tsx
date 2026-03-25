@@ -7,7 +7,9 @@ const STATUSES = [
   { key: 'bookmarked', label: 'Bookmarked' },
   { key: 'applied', label: 'Applied' },
   { key: 'in_progress', label: 'In Progress' },
+  { key: 'interviewing', label: 'Interviewing' },
   { key: 'offer', label: 'Offer' },
+  { key: 'rejected', label: 'Rejected' },
   { key: 'closed', label: 'Closed' },
 ]
 

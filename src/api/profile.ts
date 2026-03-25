@@ -1,4 +1,5 @@
 export interface Experience { company: string; role: string; start_date: string; end_date: string | null; accomplishments: string[] }
+export interface Activity { name: string; category: string; url?: string; start_date?: string; end_date?: string | null; details: string[] }
 export interface Education { institution: string; degree: string; field?: string; start_date: string; end_date: string | null; details: string[] }
 export interface Certification { name: string; issuer: string; date: string }
 
@@ -6,9 +7,9 @@ export interface Profile {
   summary: string
   skills: string[]
   experience: Experience[]
+  activities: Activity[]
   education: Education[]
   certifications: Certification[]
-  objectives: string[]
 }
 
 export async function fetchProfile(): Promise<Profile> {

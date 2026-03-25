@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
+import { fetchDashboard as fetchDashboardApi } from '../../api/dashboard'
+import { toggleTask, addTask, deleteTask } from '../../api/tasks'
 import { ProfileBanner } from './ProfileBanner'
 import { StatCard } from './StatCard'
 import { DailyTasks } from './DailyTasks'
@@ -9,7 +11,9 @@ const STATUS_COLORS: Record<string, string> = {
   bookmarked: 'var(--color-muted)',
   applied: 'var(--color-secondary)',
   in_progress: 'var(--color-accent)',
+  interviewing: 'var(--color-info)',
   offer: 'var(--color-success)',
+  rejected: 'var(--color-warning)',
   closed: 'var(--color-error)',
 }
 
@@ -37,13 +41,12 @@ interface DashboardData {
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState(false)
+  const [taskError, setTaskError] = useState<string | null>(null)
 
   const fetchDashboard = useCallback(async () => {
     setError(false)
     try {
-      const res = await fetch('/api/dashboard')
-      if (!res.ok) throw new Error('fetch failed')
-      setData(await res.json())
+      setData(await fetchDashboardApi())
     } catch {
       setError(true)
     }
@@ -52,26 +55,33 @@ export default function Dashboard() {
   useEffect(() => { fetchDashboard() }, [fetchDashboard])
 
   const handleToggleTask = async (id: number, completed: boolean) => {
-    await fetch(`/api/tasks/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed }),
-    })
-    fetchDashboard()
+    setTaskError(null)
+    try {
+      await toggleTask(id, completed)
+      await fetchDashboard()
+    } catch {
+      setTaskError('Failed to update task.')
+    }
   }
 
   const handleAddTask = async (title: string, recurrence: string | null, intervalDays: number | null) => {
-    await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, recurrence, interval_days: intervalDays }),
-    })
-    fetchDashboard()
+    setTaskError(null)
+    try {
+      await addTask(title, recurrence, intervalDays)
+      await fetchDashboard()
+    } catch {
+      setTaskError('Failed to add task.')
+    }
   }
 
   const handleDeleteTask = async (id: number) => {
-    await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
-    fetchDashboard()
+    setTaskError(null)
+    try {
+      await deleteTask(id)
+      await fetchDashboard()
+    } catch {
+      setTaskError('Failed to delete task.')
+    }
   }
 
   if (error) {
@@ -123,6 +133,8 @@ export default function Dashboard() {
           }
         />
       </div>
+
+      {taskError && <div className="dashboard-task-error">{taskError}</div>}
 
       <div className="dashboard-bottom-row">
         <DailyTasks

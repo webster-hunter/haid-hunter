@@ -17,6 +17,7 @@ export default function KanbanCard({ application, onClick, isDragging }: Props) 
     <div
       className={`kanban-card${isDragging ? ' dimmed' : ''}`}
       draggable
+      data-id={application.id}
       onDragStart={handleDragStart}
       onClick={() => onClick(application)}
       role="button"

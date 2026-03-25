@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import InterviewChat from '../../components/profile/InterviewChat'
 
@@ -25,5 +25,21 @@ describe('InterviewChat', () => {
   it('shows a welcome prompt before interview starts', () => {
     render(<InterviewChat onProfileUpdate={() => {}} />)
     expect(screen.getByText(/start an interview/i)).toBeInTheDocument()
+  })
+
+  it('shows error message when start fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
+    render(<InterviewChat onProfileUpdate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /start interview/i }))
+    expect(await screen.findByText(/something went wrong/i)).toBeInTheDocument()
+  })
+
+  it('re-enables start button after error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
+    render(<InterviewChat onProfileUpdate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /start interview/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /start interview/i })).not.toBeDisabled()
+    })
   })
 })

@@ -18,6 +18,7 @@ export default function InterviewChat({ onProfileUpdate }: Props) {
   const [messages, setMessages] = useState<ChatEntry[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -28,10 +29,16 @@ export default function InterviewChat({ onProfileUpdate }: Props) {
 
   const handleStart = async () => {
     setLoading(true)
-    const { session_id, message } = await startInterview()
-    setSessionId(session_id)
-    setMessages([{ role: 'assistant', content: message }])
-    setLoading(false)
+    setError(null)
+    try {
+      const { session_id, message } = await startInterview()
+      setSessionId(session_id)
+      setMessages([{ role: 'assistant', content: message }])
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSend = async () => {
@@ -40,27 +47,42 @@ export default function InterviewChat({ onProfileUpdate }: Props) {
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: userMsg }])
     setLoading(true)
-    const result = await sendMessage(sessionId, userMsg)
-    setMessages(prev => [...prev, { role: 'assistant', content: result.message, suggestion: result.suggestion }])
-    setLoading(false)
+    setError(null)
+    try {
+      const result = await sendMessage(sessionId, userMsg)
+      setMessages(prev => [...prev, { role: 'assistant', content: result.message, suggestion: result.suggestion }])
+    } catch {
+      setError('Failed to send message. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAccept = async (suggestionId: string) => {
     if (!sessionId) return
-    await acceptSuggestion(sessionId, suggestionId)
-    onProfileUpdate()
+    try {
+      await acceptSuggestion(sessionId, suggestionId)
+      onProfileUpdate()
+    } catch {
+      setError('Failed to accept suggestion.')
+    }
   }
 
   const handleReject = async (suggestionId: string) => {
     if (!sessionId) return
-    await rejectSuggestion(sessionId, suggestionId)
+    try {
+      await rejectSuggestion(sessionId, suggestionId)
+    } catch {
+      setError('Failed to reject suggestion.')
+    }
   }
 
   return (
     <div className="interview-chat-inner">
       <h3>Interview</h3>
       <div className="chat-messages" data-testid="chat-messages">
-        {messages.length === 0 && (
+        {error && <div className="chat-error">{error}</div>}
+        {messages.length === 0 && !error && (
           <div className="chat-empty-state">
             Start an interview to get help refining your profile.
           </div>
