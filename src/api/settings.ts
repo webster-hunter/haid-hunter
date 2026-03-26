@@ -1,39 +1,20 @@
-export interface ApiKeyStatus {
-  configured: boolean
-  source: 'database' | 'env' | null
-  masked?: string
+export interface Setting {
+  key: string
+  value: string
 }
 
-export interface ApiKeyTestResult {
-  valid: boolean
-  source?: string
-  error?: string
-  warning?: string
-}
-
-export async function getApiKeyStatus(): Promise<ApiKeyStatus> {
-  const res = await fetch('/api/settings/api-key')
-  if (!res.ok) throw new Error('Failed to get API key status')
+export async function getSetting(key: string): Promise<Setting> {
+  const res = await fetch(`/api/settings/${key}`)
+  if (!res.ok) throw new Error('Setting not found')
   return res.json()
 }
 
-export async function setApiKey(apiKey: string): Promise<ApiKeyStatus> {
-  const res = await fetch('/api/settings/api-key', {
+export async function putSetting(key: string, value: string): Promise<Setting> {
+  const res = await fetch(`/api/settings/${key}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ api_key: apiKey }),
+    body: JSON.stringify({ value }),
   })
-  if (!res.ok) throw new Error('Failed to set API key')
-  return res.json()
-}
-
-export async function deleteApiKey(): Promise<void> {
-  const res = await fetch('/api/settings/api-key', { method: 'DELETE' })
-  if (!res.ok) throw new Error('Failed to delete API key')
-}
-
-export async function testApiKey(): Promise<ApiKeyTestResult> {
-  const res = await fetch('/api/settings/api-key/test', { method: 'POST' })
-  if (!res.ok) throw new Error('Failed to test API key')
+  if (!res.ok) throw new Error('Failed to save setting')
   return res.json()
 }

@@ -26,23 +26,3 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".xlsx", ".csv", ".pptx"}
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
-
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-
-
-def get_api_key() -> str | None:
-    """Hybrid lookup: check DB (encrypted) first, fall back to .env."""
-    try:
-        from backend.services.database import get_connection
-        from backend.services.encryption import EncryptionService
-        conn = get_connection()
-        row = conn.execute("SELECT value FROM settings WHERE key = ?", ("anthropic_api_key",)).fetchone()
-        conn.close()
-        if row:
-            enc = EncryptionService()
-            decrypted = enc.decrypt(row["value"])
-            if decrypted:
-                return decrypted
-    except Exception:
-        pass
-    return ANTHROPIC_API_KEY
