@@ -1,6 +1,10 @@
 import json
 import logging
-from backend.config import get_api_key
+import re
+from fastapi import HTTPException
+from claude_agent_sdk import query, ClaudeAgentOptions
+from claude_agent_sdk import CLINotFoundError, CLIConnectionError, ProcessError, ClaudeSDKError
+from backend.services.schema import generate_profile_schema
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +15,11 @@ EMPTY_RESULT = {
     "soft_skills": [],
 }
 
-EXTRACTION_PROMPT = """Analyze the following documents from a job seeker and extract structured information.
+EXTRACTION_PROMPT = """Analyze the documents in this directory and extract structured profile information.
+
+Use the Read and Glob tools to read documents in the current working directory.
+
+{schema}
 
 Return ONLY a JSON object with these keys:
 - "skills": Technical skills mentioned (programming languages, frameworks, tools)
@@ -20,33 +28,22 @@ Return ONLY a JSON object with these keys:
 - "soft_skills": Leadership, communication, teamwork, and other soft skills
 
 Be specific and extract actual terms/phrases from the documents. Do not invent or generalize.
-
-Documents:
-{doc_contents}"""
+Return only valid JSON — no markdown fences, no extra text."""
 
 
-def get_claude_client():
-    import anthropic
-    return anthropic.Anthropic(api_key=get_api_key())
-
-
-def extract_from_documents(doc_contents: str) -> dict:
-    if doc_contents == "No previewable documents found.":
+def _parse_json_result(raw: str) -> dict:
+    """Parse JSON from SDK result text, handling markdown code fences."""
+    if not raw:
         return dict(EMPTY_RESULT)
 
-    client = get_claude_client()
-    response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2048,
-        messages=[{
-            "role": "user",
-            "content": EXTRACTION_PROMPT.format(doc_contents=doc_contents),
-        }],
-    )
+    # Strip markdown code fences if present
+    stripped = raw.strip()
+    fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)```", stripped)
+    if fence_match:
+        stripped = fence_match.group(1).strip()
 
-    raw = response.content[0].text
     try:
-        parsed = json.loads(raw)
+        parsed = json.loads(stripped)
         return {
             "skills": parsed.get("skills", []),
             "technologies": parsed.get("technologies", []),
@@ -56,6 +53,37 @@ def extract_from_documents(doc_contents: str) -> dict:
     except (json.JSONDecodeError, AttributeError):
         logger.warning("Failed to parse extraction response: %s", raw[:200])
         return dict(EMPTY_RESULT)
+
+
+async def extract_from_documents(documents_dir: str) -> dict:
+    schema = generate_profile_schema()
+    prompt = EXTRACTION_PROMPT.format(schema=schema)
+
+    options = ClaudeAgentOptions(
+        allowed_tools=["Read", "Glob"],
+        cwd=documents_dir,
+        permission_mode="bypassPermissions",
+        max_turns=5,
+    )
+
+    try:
+        result_text = None
+        async for message in query(prompt=prompt, options=options):
+            if hasattr(message, "result") and message.result is not None:
+                result_text = message.result
+        return _parse_json_result(result_text or "")
+    except CLINotFoundError as exc:
+        logger.error("Claude CLI not found: %s", exc)
+        raise HTTPException(status_code=503, detail="Claude CLI not found") from exc
+    except CLIConnectionError as exc:
+        logger.error("Claude CLI connection error: %s", exc)
+        raise HTTPException(status_code=503, detail="Claude CLI connection error") from exc
+    except ProcessError as exc:
+        logger.error("Claude process error: %s", exc)
+        raise HTTPException(status_code=502, detail="Claude process error") from exc
+    except ClaudeSDKError as exc:
+        logger.error("Claude SDK error: %s", exc)
+        raise HTTPException(status_code=500, detail="Claude SDK error") from exc
 
 
 def merge_suggestions(existing_profile: dict, suggestions: dict) -> dict:

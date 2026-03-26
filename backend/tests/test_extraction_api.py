@@ -1,6 +1,6 @@
 import json
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from httpx import AsyncClient, ASGITransport
 from backend.main import app
 
@@ -15,31 +15,12 @@ def mock_extraction():
     }
 
 
-@pytest.fixture
-def mock_metadata():
-    return {
-        "files": {
-            "abc123": {
-                "original_name": "resume.txt",
-                "stored_name": "abc123_resume.txt",
-                "mime_type": "text/plain",
-                "tags": ["resume"],
-            }
-        },
-        "tags": ["resume"],
-    }
-
-
 @pytest.mark.asyncio
-async def test_analyze_returns_suggestions(mock_extraction, mock_metadata):
-    mock_meta_svc = MagicMock()
-    mock_meta_svc.read.return_value = mock_metadata
-    mock_meta_svc.docs_dir = MagicMock()
-
-    with (
-        patch("backend.routers.extraction.get_metadata_service", return_value=mock_meta_svc),
-        patch("backend.routers.extraction.read_document_contents", return_value="Resume text with Python"),
-        patch("backend.routers.extraction.extract_from_documents", return_value=mock_extraction),
+async def test_analyze_returns_suggestions(mock_extraction):
+    with patch(
+        "backend.routers.extraction.extract_from_documents",
+        new_callable=AsyncMock,
+        return_value=mock_extraction,
     ):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
