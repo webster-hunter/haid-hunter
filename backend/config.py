@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -26,3 +27,6 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".xlsx", ".csv", ".pptx"}
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+
+# Resolve Claude Code CLI path — prefer system-installed over bundled
+CLAUDE_CLI_PATH = os.getenv("CLAUDE_CLI_PATH") or shutil.which("claude")

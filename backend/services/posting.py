@@ -4,6 +4,7 @@ import re
 from fastapi import HTTPException
 from claude_agent_sdk import query, ClaudeAgentOptions
 from claude_agent_sdk import CLINotFoundError, CLIConnectionError, ProcessError, ClaudeSDKError
+from backend.config import CLAUDE_CLI_PATH
 from backend.services.schema import generate_profile_schema
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ async def analyze_posting(url: str, profile: dict) -> dict:
         permission_mode="bypassPermissions",
         max_turns=5,
         system_prompt=POSTING_SYSTEM_PROMPT,
+        cli_path=CLAUDE_CLI_PATH,
     )
 
     try:

@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
 from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions
 from claude_agent_sdk import CLINotFoundError, CLIConnectionError, ProcessError, ClaudeSDKError
+from backend.config import CLAUDE_CLI_PATH
 from backend.services.schema import generate_profile_schema
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,7 @@ async def start_session(profile: dict, documents_dir: str) -> tuple[str, str]:
         cwd=documents_dir,
         allowed_tools=["Read", "Glob"],
         permission_mode="bypassPermissions",
+        cli_path=CLAUDE_CLI_PATH,
     )
 
     try:
