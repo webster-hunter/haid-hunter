@@ -85,8 +85,10 @@ _sessions[session_id] = {
 **To:**
 ```python
 _sessions[session_id] = {
-    "client": ClaudeSDKClient,  # live SDK client, maintains own context
-    "suggestions": {...},        # indexed by suggestion_id for accept/reject
+    "client": ClaudeSDKClient,       # live SDK client, maintains own context
+    "suggestions": {...},             # indexed by suggestion_id for accept/reject
+    "accepted_suggestions": [],       # list of accepted suggestion_ids
+    "rejected_suggestions": [],       # list of rejected suggestion_ids
     "created_at": ...,
 }
 ```
@@ -95,7 +97,7 @@ _sessions[session_id] = {
 
 **Suggestion parsing:** Unchanged — Claude returns suggestions as JSON blocks with ` ```suggestion ` markers. The service parses these from the SDK response text, assigns `suggestion_id`s, and stores them for accept/reject.
 
-**Session cleanup:** On TTL expiry or explicit close, the `ClaudeSDKClient` context manager is exited to release resources. The existing cleanup logic (max 20 sessions, 30 min TTL) remains.
+**Session cleanup:** On TTL expiry or explicit close, the `ClaudeSDKClient` must be properly shut down. Since the existing `cleanup_expired_sessions()` is synchronous but `ClaudeSDKClient.__aexit__()` is async, the cleanup function must become async and be called from a FastAPI background task or periodic async loop (e.g., triggered on each request via a dependency). On FastAPI shutdown, all remaining sessions are cleaned up via an `on_event("shutdown")` handler that iterates and closes all live clients.
 
 ### `backend/services/extraction.py` — Rewrite
 
@@ -115,9 +117,13 @@ _sessions[session_id] = {
 
 **Add:** No new config needed — the SDK uses Claude Code's built-in auth.
 
-### `backend/routers/interview.py` — Minor changes
+### `backend/routers/interview.py` — Moderate changes
 
 Rate limiting, session TTL enforcement, and suggestion accept/reject endpoints remain. The router calls the rewritten `interview.py` service which now uses the SDK internally. Router contract is unchanged.
+
+**Remove:** The `read_document_contents` call and `MetadataService` dependency. The SDK reads documents directly via `Read`/`Glob` tools — the router no longer needs to pre-read documents before starting a session.
+
+**Fix encapsulation:** The router currently reaches directly into `interview_service._sessions` for accept/reject. Add proper service-layer methods (`accept_suggestion(session_id, suggestion_id)`, `reject_suggestion(session_id, suggestion_id)`) instead of accessing the private dict from the router.
 
 ### `backend/routers/extraction.py` — Minor changes
 
@@ -177,6 +183,8 @@ Profile Schema:
   objectives: string[]
 ```
 
+**Note:** The `objectives` field exists in the frontend (`SectionEditor.tsx` has an objectives editor) but is not yet in the Python profile model. As part of this work, add `objectives: list[str]` to `VALID_SECTIONS`, `EMPTY_PROFILE`, and the Pydantic `ProfileRequest` model.
+
 Each service imports the schema string and injects it along with the current profile state into the system prompt.
 
 **Schema drift:** The Pydantic models in `backend/routers/profile.py` are the validation source of truth. The schema string in `schema.py` is the prompt-facing representation for Claude. Both must be updated when the profile model changes. Acceptable trade-off for a single-developer project.
@@ -199,19 +207,21 @@ Most frontend code is unaffected. These files require updates:
 - **`src/api/settings.ts`** — remove API key management functions (`getApiKeyStatus`, `setApiKey`, `deleteApiKey`, `testApiKey`). Replace with a service health check or remove entirely.
 - **`src/components/settings/SettingsView.tsx`** — remove API key configuration UI. Simplify to show other settings or service status.
 - **`src/__tests__/settings/SettingsView.test.tsx`** — rewrite to match simplified Settings page.
-- **`src/api/interview.ts`** — update `startInterview` response type to include `suggestions[]` if not already present.
+- **`src/api/interview.ts`** — update `startInterview` response type to include `suggestions[]`. Currently returns `{ session_id: string; message: string }`. The new interview service will return suggestions from the initial response, so the type becomes `{ session_id: string; message: string; suggestions: Suggestion[] }`.
 
 ## Dependency Changes
 
 ### Remove
 - `anthropic` (pip)
 - `cryptography` (pip) — only used by `encryption.py`
+- `pdfplumber` (pip) — only used by `document_reader.py`, which is being removed. The SDK's built-in `Read` tool handles file reading.
 
 ### Add
 - `claude-agent-sdk` (pip)
 
 ### No Change
-- `httpx` stays (used for other features)
+- `httpx` stays (used in async test client harness)
+- `python-magic-bin` stays (used for MIME type detection in document uploads, unaffected)
 - All npm dependencies unchanged
 
 ## Error Handling
@@ -266,13 +276,15 @@ Each service wraps SDK calls in try/except and raises `HTTPException` with appro
 
 ## Migration Path
 
-1. Install `claude-agent-sdk`, remove `anthropic` and `cryptography`
-2. Create `backend/services/schema.py` with profile schema string
-3. Rewrite `backend/services/interview.py` using `ClaudeSDKClient`
-4. Rewrite `backend/services/extraction.py` using `query()`, preserve `merge_suggestions()`
-5. Create `backend/services/posting.py` and `backend/routers/posting.py`
-6. Remove `backend/services/encryption.py` and `backend/services/document_reader.py`
-7. Simplify `backend/config.py` (remove API key logic)
-8. Remove API key endpoints from `backend/routers/settings.py`
-9. Update frontend settings page
-10. Update all affected tests
+1. Add `objectives: list[str]` to profile model (`VALID_SECTIONS`, `EMPTY_PROFILE`, Pydantic `ProfileRequest`)
+2. Install `claude-agent-sdk`, remove `anthropic`, `cryptography`, and `pdfplumber`
+3. Create `backend/services/schema.py` with profile schema string
+4. Rewrite `backend/services/interview.py` using `ClaudeSDKClient`, add proper `accept_suggestion`/`reject_suggestion` methods
+5. Rewrite `backend/services/extraction.py` using `query()`, preserve `merge_suggestions()`
+6. Create `backend/services/posting.py` and `backend/routers/posting.py`
+7. Remove `backend/services/encryption.py` and `backend/services/document_reader.py`
+8. Simplify `backend/config.py` (remove API key logic)
+9. Update `backend/routers/interview.py` — remove `read_document_contents` call, use service-layer methods for accept/reject
+10. Remove API key endpoints from `backend/routers/settings.py`
+11. Update frontend settings page and interview API types
+12. Update all affected tests
