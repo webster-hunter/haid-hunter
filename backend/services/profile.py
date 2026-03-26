@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from threading import Lock
 
-VALID_SECTIONS = {"summary", "skills", "experience", "activities", "education", "certifications"}
+VALID_SECTIONS = {"summary", "skills", "experience", "activities", "education", "certifications", "objectives"}
 
 EMPTY_PROFILE = {
     "summary": "",
@@ -11,6 +11,7 @@ EMPTY_PROFILE = {
     "activities": [],
     "education": [],
     "certifications": [],
+    "objectives": [],
 }
 
 

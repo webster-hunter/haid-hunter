@@ -8,6 +8,7 @@ EMPTY_PROFILE = {
     "activities": [],
     "education": [],
     "certifications": [],
+    "objectives": [],
 }
 
 
@@ -52,3 +53,13 @@ def test_patch_invalid_section(tmp_path):
         assert False, "Should have raised"
     except KeyError:
         pass
+
+
+def test_empty_profile_includes_objectives(tmp_path):
+    from backend.services.profile import ProfileService, EMPTY_PROFILE
+    assert "objectives" in EMPTY_PROFILE
+    assert EMPTY_PROFILE["objectives"] == []
+    service = ProfileService(tmp_path / ".profile.json")
+    profile = service.get()
+    assert "objectives" in profile
+    assert profile["objectives"] == []
