@@ -1,23 +1,14 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from backend.config import DOCUMENTS_DIR, PROFILE_PATH
-from backend.services.metadata import MetadataService
 from backend.services.profile import ProfileService, VALID_SECTIONS
 from backend.services import interview as interview_service
 from backend.rate_limit import limiter
 
 router = APIRouter(prefix="/api/interview", tags=["interview"])
 
-_metadata_service: MetadataService | None = None
 _profile_service: ProfileService | None = None
 _sessions: dict | None = None
-
-
-def get_metadata_service() -> MetadataService:
-    global _metadata_service
-    if _metadata_service is None:
-        _metadata_service = MetadataService(DOCUMENTS_DIR)
-    return _metadata_service
 
 
 def get_profile_service() -> ProfileService:
@@ -50,9 +41,9 @@ class SuggestionRequest(BaseModel):
 async def start_interview(request: Request):
     _sync_sessions()
     profile = get_profile_service().get()
-    metadata = get_metadata_service().read()
-    doc_contents = interview_service.read_document_contents(DOCUMENTS_DIR, metadata)
-    session_id, message = interview_service.start_session(profile, doc_contents)
+    session_id, message = await interview_service.start_session(
+        profile, str(DOCUMENTS_DIR)
+    )
     return {"session_id": session_id, "message": message}
 
 
@@ -61,7 +52,7 @@ async def start_interview(request: Request):
 async def send_message(request: Request, body: MessageRequest):
     _sync_sessions()
     try:
-        result = interview_service.send_message(body.session_id, body.message)
+        result = await interview_service.send_message(body.session_id, body.message)
         return result
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -71,7 +62,9 @@ async def send_message(request: Request, body: MessageRequest):
 async def accept_suggestion(body: SuggestionRequest):
     _sync_sessions()
     try:
-        suggestion = interview_service.get_suggestion(body.session_id, body.suggestion_id)
+        suggestion = interview_service.get_suggestion(
+            body.session_id, body.suggestion_id
+        )
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
     if suggestion is None:
@@ -85,18 +78,29 @@ async def accept_suggestion(body: SuggestionRequest):
 
     # Validate section
     if section not in VALID_SECTIONS:
-        raise HTTPException(status_code=400, detail=f"Invalid suggestion section: {section}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid suggestion section: {section}"
+        )
 
     # Validate action
     if action not in ("add", "update", "remove"):
-        raise HTTPException(status_code=400, detail=f"Invalid suggestion action: {action}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid suggestion action: {action}"
+        )
 
     # Validate index bounds for update/remove on list sections
     if action in ("update", "remove") and isinstance(profile.get(section), list):
         index = target.get("index")
         if section != "summary" and index is not None:
-            if not isinstance(index, int) or index < 0 or index >= len(profile.get(section, [])):
-                raise HTTPException(status_code=400, detail=f"Index {index} out of bounds for section {section}")
+            if (
+                not isinstance(index, int)
+                or index < 0
+                or index >= len(profile.get(section, []))
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Index {index} out of bounds for section {section}",
+                )
 
     if action == "add" and isinstance(profile.get(section), list):
         profile[section].append(suggestion["proposed"])
@@ -124,9 +128,8 @@ async def accept_suggestion(body: SuggestionRequest):
 
     service.put(profile)
 
-    # Record acceptance in session state so Claude is informed on the next turn
-    session = interview_service._sessions[body.session_id]
-    session["accepted_suggestions"].append(body.suggestion_id)
+    # Record acceptance via service method
+    interview_service.accept_suggestion(body.session_id, body.suggestion_id)
 
     return {"status": "accepted", "profile": profile}
 
@@ -135,14 +138,15 @@ async def accept_suggestion(body: SuggestionRequest):
 async def reject_suggestion(body: SuggestionRequest):
     _sync_sessions()
     try:
-        suggestion = interview_service.get_suggestion(body.session_id, body.suggestion_id)
+        suggestion = interview_service.get_suggestion(
+            body.session_id, body.suggestion_id
+        )
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
     if suggestion is None:
         raise HTTPException(status_code=404, detail="Suggestion not found")
 
-    # Record rejection in session state so Claude is informed on the next turn
-    session = interview_service._sessions[body.session_id]
-    session["rejected_suggestions"].append(body.suggestion_id)
+    # Record rejection via service method
+    interview_service.reject_suggestion(body.session_id, body.suggestion_id)
 
     return {"status": "rejected", "suggestion_id": body.suggestion_id}

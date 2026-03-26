@@ -62,6 +62,12 @@ async def startup():
     EncryptionService()
 
 
+@app.on_event("shutdown")
+async def shutdown():
+    from backend.services import interview as interview_service
+    await interview_service.close_all_sessions()
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
