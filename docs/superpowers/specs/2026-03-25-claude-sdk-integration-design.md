@@ -10,7 +10,7 @@ Replace the direct `anthropic` Python SDK usage with the `claude-agent-sdk` Pyth
 Browser (React) --> FastAPI (Python :8000) --> claude-agent-sdk query() / ClaudeSDKClient
 ```
 
-The `anthropic` SDK calls in `backend/services/interview.py` and `backend/services/extraction.py` are replaced with `claude_agent_sdk` calls. No new services, no new processes, no new runtimes.
+The `anthropic` SDK calls in `backend/services/interview.py` and `backend/services/extraction.py` are replaced with `claude_agent_sdk` calls. No new services or runtimes. **Note:** The SDK spawns CLI subprocesses internally — this is not truly "zero processes" but the subprocess lifecycle is managed by the SDK, not by us.
 
 ### Why in-process over a sidecar?
 
@@ -97,7 +97,13 @@ _sessions[session_id] = {
 
 **Suggestion parsing:** Unchanged — Claude returns suggestions as JSON blocks with ` ```suggestion ` markers. The service parses these from the SDK response text, assigns `suggestion_id`s, and stores them for accept/reject.
 
-**Session cleanup:** On TTL expiry or explicit close, the `ClaudeSDKClient` must be properly shut down. Since the existing `cleanup_expired_sessions()` is synchronous but `ClaudeSDKClient.__aexit__()` is async, the cleanup function must become async and be called from a FastAPI background task or periodic async loop (e.g., triggered on each request via a dependency). On FastAPI shutdown, all remaining sessions are cleaned up via an `on_event("shutdown")` handler that iterates and closes all live clients.
+**Session cleanup:** `ClaudeSDKClient` holds a CLI subprocess. Cleanup must be handled carefully to avoid orphaned processes, especially on Windows where child processes are not automatically killed when the parent dies.
+
+**Chosen strategy:** `cleanup_expired_sessions()` becomes async. It is called as a FastAPI dependency on every interview endpoint request (lightweight — just checks timestamps and evicts expired entries). Each eviction calls `await client.__aexit__(None, None, None)` to properly shut down the subprocess.
+
+**Shutdown handler:** A `@app.on_event("shutdown")` handler iterates all remaining sessions and closes their clients. As a belt-and-suspenders fallback, it also sends `SIGTERM` (or `taskkill` on Windows) to any subprocess PID still alive after `__aexit__`.
+
+**Process restart:** Sessions are ephemeral and non-recoverable across server restarts. The frontend must handle a "session expired" response gracefully rather than showing a confusing error.
 
 ### `backend/services/extraction.py` — Rewrite
 
@@ -135,9 +141,9 @@ Proxies to the rewritten `extraction.py` service. Router contract is unchanged.
 
 **Keep:** Any non-API-key settings endpoints (if present).
 
-### `backend/services/encryption.py` — Remove
+### `backend/services/encryption.py` — Keep
 
-No longer needed. Was only used for API key Fernet encryption.
+**Cannot be removed.** `EncryptionService` is used by `backend/routers/applications.py` to encrypt/decrypt job application credentials (`login_email`, `login_password`). It is also instantiated in `backend/main.py` at startup. Only the API-key-specific usage in `config.py` and `settings.py` is removed.
 
 ### `backend/services/document_reader.py` — Remove
 
@@ -187,7 +193,7 @@ Profile Schema:
 
 Each service imports the schema string and injects it along with the current profile state into the system prompt.
 
-**Schema drift:** The Pydantic models in `backend/routers/profile.py` are the validation source of truth. The schema string in `schema.py` is the prompt-facing representation for Claude. Both must be updated when the profile model changes. Acceptable trade-off for a single-developer project.
+**Schema drift mitigation:** Rather than maintaining a hand-crafted string, `schema.py` should auto-generate the prompt schema from the Pydantic models in `profile.py`. A small function (~20 lines) walks the model fields and produces the compact format shown above. This eliminates a class of bugs where the schema and model diverge.
 
 ## SDK Options Per Feature
 
@@ -198,7 +204,9 @@ Each service imports the schema string and injects it along with the current pro
 | Extract | `query()` | `Read`, `Glob` | 5 | documents dir | one-shot |
 | Analyze posting | `query()` | `WebFetch` | 5 | N/A | one-shot |
 
-All use `permission_mode="bypassPermissions"` since this is a headless backend with no interactive user. Tool access is explicitly scoped via `allowed_tools` per call, and `cwd` constrains file operations to the documents directory.
+All use `permission_mode="bypassPermissions"` since this is a headless backend with no interactive user. Tool access is explicitly scoped via `allowed_tools` per call, and `cwd` is set to the documents directory.
+
+**`cwd` scope caveat:** `cwd` sets the working directory for relative paths but may not prevent the Read tool from accessing absolute paths outside it. This is low severity for a localhost-only app where the user owns all local files, but the system prompts should instruct Claude to only read files within the documents directory. This is a defense-in-depth measure, not a hard security boundary.
 
 ## Frontend Changes
 
@@ -213,13 +221,13 @@ Most frontend code is unaffected. These files require updates:
 
 ### Remove
 - `anthropic` (pip)
-- `cryptography` (pip) — only used by `encryption.py`
-- `pdfplumber` (pip) — only used by `document_reader.py`, which is being removed. The SDK's built-in `Read` tool handles file reading.
+- `pdfplumber` (pip) — only used by `document_reader.py`, which is being removed. The SDK's built-in `Read` tool handles file reading. **Note:** Verify that the SDK's Read tool can extract text from PDFs; if not, keep `pdfplumber` as a fallback for document preview.
 
 ### Add
 - `claude-agent-sdk` (pip)
 
 ### No Change
+- `cryptography` stays (used by `encryption.py` for application credential encryption)
 - `httpx` stays (used in async test client harness)
 - `python-magic-bin` stays (used for MIME type detection in document uploads, unaffected)
 - All npm dependencies unchanged
@@ -269,6 +277,8 @@ Each service wraps SDK calls in try/except and raises `HTTPException` with appro
 
 **What we do test:** Prompt construction, option configuration, response parsing, error handling, session lifecycle, rate limits.
 
+**SDK smoke test:** One manual (or CI-excluded) test that calls the real SDK with a trivial prompt to verify import paths, function signatures, and response shapes are correct. This catches API shape mismatches early. Marked `@pytest.mark.skip(reason="requires Claude Code CLI")` in normal test runs.
+
 ### Frontend (vitest)
 
 - Settings page tests rewritten for simplified UI
@@ -276,14 +286,15 @@ Each service wraps SDK calls in try/except and raises `HTTPException` with appro
 
 ## Migration Path
 
+0. Run SDK smoke test — verify `claude_agent_sdk` imports, `query()` signature, and response shape
 1. Add `objectives: list[str]` to profile model (`VALID_SECTIONS`, `EMPTY_PROFILE`, Pydantic `ProfileRequest`)
-2. Install `claude-agent-sdk`, remove `anthropic`, `cryptography`, and `pdfplumber`
-3. Create `backend/services/schema.py` with profile schema string
-4. Rewrite `backend/services/interview.py` using `ClaudeSDKClient`, add proper `accept_suggestion`/`reject_suggestion` methods
+2. Install `claude-agent-sdk`, remove `anthropic` and `pdfplumber` (keep `cryptography` — used by applications)
+3. Create `backend/services/schema.py` — auto-generate prompt schema from Pydantic models
+4. Rewrite `backend/services/interview.py` using `ClaudeSDKClient`, add `accept_suggestion`/`reject_suggestion` methods, implement async cleanup with subprocess fallback
 5. Rewrite `backend/services/extraction.py` using `query()`, preserve `merge_suggestions()`
 6. Create `backend/services/posting.py` and `backend/routers/posting.py`
-7. Remove `backend/services/encryption.py` and `backend/services/document_reader.py`
-8. Simplify `backend/config.py` (remove API key logic)
+7. Remove `backend/services/document_reader.py` (keep `encryption.py`)
+8. Simplify `backend/config.py` (remove API key logic only)
 9. Update `backend/routers/interview.py` — remove `read_document_contents` call, use service-layer methods for accept/reject
 10. Remove API key endpoints from `backend/routers/settings.py`
 11. Update frontend settings page and interview API types
