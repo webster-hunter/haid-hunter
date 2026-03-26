@@ -14,8 +14,11 @@ hAId-hunter runs entirely on your local machine. It provides three core features
 - **Document Manager**: Upload and tag resumes, cover letters, and supporting
   documents. Preview files in-browser and organize them with custom tags.
 - **Profile View**: Build a structured candidate profile covering skills,
-  experience, education, and certifications. An optional Claude-powered interview
-  chat helps you refine your profile through guided questions.
+  experience, education, and certifications. A Claude-powered interview chat helps
+  you refine your profile through guided questions, and document extraction
+  automatically pulls skills and keywords from your uploaded files.
+- **Job Posting Analysis**: Paste a job posting URL and get back key requirements,
+  emphasis areas, and keywords — mapped against your profile.
 - **Application Manager**: Track job applications with company details, posting
   URLs, portal credentials (encrypted at rest), status tracking, and linked
   documents. View applications in a sortable table or Kanban board.
@@ -24,8 +27,8 @@ hAId-hunter runs entirely on your local machine. It provides three core features
 
 - [Node.js](https://nodejs.org/) (v18 or later)
 - [Python](https://www.python.org/) (3.12 or later)
-- An [Anthropic API key](https://console.anthropic.com/) (optional, required only
-  for the interview chat feature)
+- [Claude Code](https://claude.com/claude-code) (for AI features — interview chat,
+  document extraction, and posting analysis)
 
 ## Set up
 
@@ -52,7 +55,6 @@ hAId-hunter runs entirely on your local machine. It provides three core features
 
    ```text
    ENCRYPTION_KEY=your-fernet-key-here
-   ANTHROPIC_API_KEY=your-anthropic-api-key-here
    ```
 
    Generate a Fernet encryption key with Python:
@@ -62,8 +64,7 @@ hAId-hunter runs entirely on your local machine. It provides three core features
    ```
 
    The `ENCRYPTION_KEY` is required for encrypting application portal credentials.
-   The `ANTHROPIC_API_KEY` is optional and only needed for the interview chat
-   feature in Profile View.
+   No separate API key is needed — AI features use your Claude Code subscription.
 
 ## Run the application
 
@@ -102,9 +103,12 @@ haid-hunter/
 │   ├── services/            # Business logic
 │   │   ├── database.py      # SQLite connection and schema
 │   │   ├── encryption.py    # Fernet encryption for credentials
-│   │   ├── interview.py     # Interview session management
+│   │   ├── extraction.py    # Document skill/keyword extraction
+│   │   ├── interview.py     # Interview session management (ClaudeSDKClient)
 │   │   ├── metadata.py      # Document metadata tracking
-│   │   └── profile.py       # Profile read/write operations
+│   │   ├── posting.py       # Job posting analysis
+│   │   ├── profile.py       # Profile read/write operations
+│   │   └── schema.py        # Auto-generated profile schema for LLM prompts
 │   ├── tests/               # Backend test suite (pytest)
 │   ├── config.py            # Configuration and environment variables
 │   └── main.py              # FastAPI application entry point
@@ -140,7 +144,7 @@ pytest
 | Backend  | FastAPI, Uvicorn              |
 | Database | SQLite                        |
 | Testing  | Vitest, pytest                |
-| AI       | Anthropic Claude API          |
+| AI       | Claude Code Agent SDK         |
 
 ## Data storage
 
@@ -152,8 +156,8 @@ All data stays on your local machine:
 - **Applications, tasks, and settings**: Stored in a SQLite database at
   `data/applications.db`. Portal credentials are encrypted with Fernet symmetric
   encryption.
-- **Interview sessions**: Held in memory only. Sessions are lost when the backend
-  restarts.
+- **Interview sessions**: Held in memory via persistent Claude SDK clients. Sessions
+  expire after 30 minutes of inactivity and are lost when the backend restarts.
 
 ## Supported file types
 
@@ -179,6 +183,9 @@ PDF, DOCX, TXT, Markdown, XLSX, CSV, PPTX. Maximum upload size is 50 MB.
 | POST   | `/api/interview/message`              | Send interview message         |
 | POST   | `/api/interview/accept`               | Accept a suggestion            |
 | POST   | `/api/interview/reject`               | Reject a suggestion            |
+| POST   | `/api/extraction/analyze`             | Extract skills from documents  |
+| POST   | `/api/extraction/accept`              | Accept extraction results      |
+| POST   | `/api/posting/analyze`                | Analyze a job posting URL      |
 | GET    | `/api/applications`                   | List applications              |
 | POST   | `/api/applications`                   | Create an application          |
 | PUT    | `/api/applications/{id}`              | Update an application          |
