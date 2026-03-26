@@ -36,7 +36,7 @@ class TestExtractFromDocuments:
 
 class TestMergeSuggestions:
     def test_merges_new_skills_into_existing(self):
-        existing = {"skills": ["Python", "SQL"], "experience": [], "education": [], "certifications": [], "summary": "", "objectives": []}
+        existing = {"skills": ["Python", "SQL"], "experience": [], "education": [], "certifications": [], "summary": "", }
         suggestions = {"skills": ["Python", "FastAPI"], "technologies": ["Docker"], "experience_keywords": [], "soft_skills": ["collaboration"]}
         result = merge_suggestions(existing, suggestions)
         assert result["skills"].count("Python") == 1
@@ -44,7 +44,7 @@ class TestMergeSuggestions:
         assert "Docker" in result["skills"]
 
     def test_handles_empty_suggestions(self):
-        existing = {"skills": ["Python"], "experience": [], "education": [], "certifications": [], "summary": "", "objectives": []}
+        existing = {"skills": ["Python"], "experience": [], "education": [], "certifications": [], "summary": "", }
         suggestions = {"skills": [], "technologies": [], "experience_keywords": [], "soft_skills": []}
         result = merge_suggestions(existing, suggestions)
         assert result["skills"] == ["Python"]

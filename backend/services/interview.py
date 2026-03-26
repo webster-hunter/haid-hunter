@@ -25,7 +25,7 @@ When you want to suggest a profile update, include a JSON block in your response
 ```suggestion
 {{
   "suggestion_id": "sug_<random>",
-  "section": "experience|skills|education|certifications|activities|summary|objectives",
+  "section": "experience|skills|education|certifications|activities|summary",
   "action": "add|update|remove",
   "target": {{ ... }},
   "original": "...",

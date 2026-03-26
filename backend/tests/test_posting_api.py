@@ -16,7 +16,6 @@ MOCK_PROFILE = {
     "experience": [],
     "education": [],
     "certifications": [],
-    "objectives": [],
 }
 
 

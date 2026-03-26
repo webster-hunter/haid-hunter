@@ -21,7 +21,6 @@ FAKE_PROFILE = {
     "experience": [],
     "education": [],
     "certifications": [],
-    "objectives": [],
 }
 
 

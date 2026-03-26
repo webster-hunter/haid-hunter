@@ -186,10 +186,7 @@ Profile Schema:
   activities: [{ name: string, category: "Project"|"Volunteer"|"Interest"|"Other", url?: string, start_date?: "YYYY-MM", end_date?: "YYYY-MM" | null, details: string[] }]
   education: [{ institution: string, degree: string, field?: string, start_date: "YYYY-MM", end_date: "YYYY-MM" | null, details: string[] }]
   certifications: [{ name: string, issuer: string, date: "YYYY-MM" }]
-  objectives: string[]
 ```
-
-**Note:** The `objectives` field exists in the frontend (`SectionEditor.tsx` has an objectives editor) but is not yet in the Python profile model. As part of this work, add `objectives: list[str]` to `VALID_SECTIONS`, `EMPTY_PROFILE`, and the Pydantic `ProfileRequest` model.
 
 Each service imports the schema string and injects it along with the current profile state into the system prompt.
 

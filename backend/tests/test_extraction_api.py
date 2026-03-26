@@ -39,7 +39,6 @@ async def test_accept_merges_into_profile(mock_extraction):
         "education": [],
         "certifications": [],
         "summary": "",
-        "objectives": "",
     }
     mock_profile_svc = MagicMock()
     mock_profile_svc.get.return_value = existing_profile
@@ -70,7 +69,6 @@ async def test_accept_partial_suggestions():
         "education": [],
         "certifications": [],
         "summary": "",
-        "objectives": "",
     }
     mock_profile_svc = MagicMock()
     mock_profile_svc.get.return_value = existing_profile

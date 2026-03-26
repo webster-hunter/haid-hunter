@@ -375,26 +375,5 @@ export default function SectionEditor({ section, data, onSave, onCancel }: Props
     )
   }
 
-  if (section === 'objectives') {
-    const objectives = value as string[]
-    return (
-      <div className="section-editor">
-        {objectives.map((obj, i) => (
-          <div key={i} className="editor-chip-row">
-            <input
-              value={obj}
-              onChange={e => { const next = [...objectives]; next[i] = e.target.value; setValue(next) }}
-              placeholder="Objective statement"
-              className="editor-objective-input"
-            />
-            <button className="editor-remove" onClick={() => setValue(objectives.filter((_, j) => j !== i))}>x</button>
-          </div>
-        ))}
-        <button className="btn btn-secondary btn-sm" onClick={() => setValue([...objectives, ''])}>+ Add Objective</button>
-        {actions}
-      </div>
-    )
-  }
-
   return null
 }

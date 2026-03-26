@@ -10,7 +10,6 @@ export interface Profile {
   activities: Activity[]
   education: Education[]
   certifications: Certification[]
-  objectives: string[]
 }
 
 export async function fetchProfile(): Promise<Profile> {

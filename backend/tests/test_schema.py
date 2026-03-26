@@ -9,7 +9,7 @@ def test_schema_includes_all_sections():
     assert "education:" in schema
     assert "certifications:" in schema
     assert "activities:" in schema
-    assert "objectives: string[]" in schema
+    assert "objectives" not in schema
 
 
 def test_schema_includes_experience_fields():

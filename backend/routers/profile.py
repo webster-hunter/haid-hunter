@@ -48,7 +48,6 @@ class ProfileRequest(BaseModel):
     activities: list[ActivityEntry] = []
     education: list[EducationEntry] = []
     certifications: list[CertificationEntry] = []
-    objectives: list[str] = []
 
     @field_validator("summary")
     @classmethod
@@ -69,16 +68,6 @@ class ProfileRequest(BaseModel):
     def max_experience(cls, v: list) -> list:
         if len(v) > 50:
             raise ValueError("Max 50 experience entries")
-        return v
-
-    @field_validator("objectives")
-    @classmethod
-    def max_objectives(cls, v: list[str]) -> list[str]:
-        if len(v) > 50:
-            raise ValueError("Max 50 objectives")
-        for item in v:
-            if len(item) > 500:
-                raise ValueError("Each objective max 500 characters")
         return v
 
 _profile_service: ProfileService | None = None
@@ -110,7 +99,6 @@ _SECTION_VALIDATORS = {
     "activities": TypeAdapter(list[ActivityEntry]),
     "education": TypeAdapter(list[EducationEntry]),
     "certifications": TypeAdapter(list[CertificationEntry]),
-    "objectives": TypeAdapter(list[str]),
 }
 
 

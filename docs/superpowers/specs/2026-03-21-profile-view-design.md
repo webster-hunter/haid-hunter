@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Profile View is the second feature of hAId-hunter. It provides a structured breakdown of the user's candidate profile — skills, experience, education, certifications, summary, and objectives. A Claude-driven interview chat helps the user build and refine their profile by reviewing their uploaded documents and asking targeted follow-up questions.
+The Profile View is the second feature of hAId-hunter. It provides a structured breakdown of the user's candidate profile — skills, experience, education, certifications, and summary. A Claude-driven interview chat helps the user build and refine their profile by reviewing their uploaded documents and asking targeted follow-up questions.
 
 ## Dependencies
 
@@ -44,7 +44,6 @@ Profile stored at `./documents/.profile.json` — a dotfile in the documents dir
   "certifications": [
     { "name": "AWS Solutions Architect", "issuer": "Amazon", "date": "2024-06" }
   ],
-  "objectives": "Looking for senior/staff engineering roles at mid-size companies..."
 }
 ```
 
@@ -55,7 +54,6 @@ Profile stored at `./documents/.profile.json` — a dotfile in the documents dir
 - `experience`: array of objects with `company` (string), `role` (string), `start_date` (string, YYYY-MM), `end_date` (string or null for current), `accomplishments` (array of strings).
 - `education`: array of objects with `institution` (string), `degree` (string), `start_date` (string, YYYY-MM), `end_date` (string, YYYY-MM).
 - `certifications`: array of objects with `name` (string), `issuer` (string), `date` (string, YYYY-MM).
-- `objectives`: free text string. This is the only freeform section — the user writes whatever they want about target roles, career direction, and preferences.
 
 ### Initialization
 
@@ -69,7 +67,7 @@ On first access (`GET /api/profile` with no existing file), the backend creates 
 |---------|----------------------------|-------------------------------------------------------------------|
 | `GET`   | `/api/profile`             | Get the full profile. Returns empty scaffold if none exists.      |
 | `PUT`   | `/api/profile`             | Replace the full profile (for manual edits).                      |
-| `PATCH` | `/api/profile/{section}`   | Update a single section. `section` is one of: `summary`, `skills`, `experience`, `education`, `certifications`, `objectives`. Body contains the section data only. |
+| `PATCH` | `/api/profile/{section}`   | Update a single section. `section` is one of: `summary`, `skills`, `experience`, `activities`, `education`, `certifications`. Body contains the section data only. |
 
 ### Interview
 
@@ -170,7 +168,7 @@ Claude's system prompt instructs it to:
 
 Each section's Edit button toggles the section into an inline editor:
 
-- **Summary / Objectives:** Text area.
+- **Summary:** Text area.
 - **Skills:** Editable list with add/remove. Each skill has name input, proficiency dropdown, category dropdown.
 - **Experience:** Editable entries with inputs for company, role, dates, and a dynamic list of accomplishment text fields.
 - **Education:** Editable entries with inputs for institution, degree, dates.

@@ -405,7 +405,6 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 .certification-list { display: flex; flex-direction: column; gap: var(--space-sm); }
 .certification-item { display: flex; align-items: baseline; gap: var(--space-sm); flex-wrap: wrap; font-size: 14px; color: var(--color-text); border-left: 2px solid var(--color-primary); padding-left: var(--space-md); }
 .certification-date { margin-left: auto; font-size: 12px; color: var(--color-muted); }
-.objectives-list { padding-left: var(--space-lg); margin: 0; font-size: 14px; }
 
 /* Interview chat inner layout */
 .interview-chat-inner { display: flex; flex-direction: column; height: 100%; padding: var(--space-md); padding-top: calc(var(--space-md) + 32px); overflow: hidden; }

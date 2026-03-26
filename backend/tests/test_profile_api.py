@@ -102,13 +102,12 @@ def test_patch_summary_accepts_string(tmp_path):
     assert response.json()["summary"] == "Updated summary"
 
 
-def test_patch_objectives(tmp_path):
+def test_patch_invalid_section_returns_400(tmp_path):
     from backend.routers import profile as profile_router
     from backend.services.profile import ProfileService
     from backend.main import app
     from fastapi.testclient import TestClient
     profile_router._profile_service = ProfileService(tmp_path / ".profile.json")
     client = TestClient(app)
-    response = client.patch("/api/profile/objectives", json=["Get promoted", "Learn Rust"])
-    assert response.status_code == 200
-    assert response.json()["objectives"] == ["Get promoted", "Learn Rust"]
+    response = client.patch("/api/profile/objectives", json=["Get promoted"])
+    assert response.status_code == 400
