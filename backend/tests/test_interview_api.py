@@ -4,7 +4,6 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.services.profile import ProfileService
-from backend.services.metadata import MetadataService
 import backend.config as config
 import backend.services.interview as interview_svc
 
@@ -43,9 +42,8 @@ def setup_test_env(tmp_path):
     docs_dir.mkdir()
     config.DOCUMENTS_DIR = docs_dir
     config.PROFILE_PATH = docs_dir / ".profile.json"
-    from backend.routers import profile, interview, documents
+    from backend.routers import profile, interview
 
-    documents._metadata_service = MetadataService(docs_dir)
     profile._profile_service = ProfileService(config.PROFILE_PATH)
     interview._profile_service = profile._profile_service
     interview._sessions = {}
