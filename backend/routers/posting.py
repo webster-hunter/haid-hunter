@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from backend.config import PROFILE_PATH
 from backend.rate_limit import limiter
 from backend.services.posting import analyze_posting
@@ -22,6 +22,13 @@ def get_profile_service() -> ProfileService:
 
 class AnalyzeRequest(BaseModel):
     url: str
+
+    @field_validator("url")
+    @classmethod
+    def url_must_be_http(cls, v: str) -> str:
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("URL must start with http:// or https://")
+        return v
 
 
 @router.post("/analyze")

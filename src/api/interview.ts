@@ -12,7 +12,7 @@ export interface InterviewMessage {
   suggestion?: Suggestion | null
 }
 
-export async function startInterview(): Promise<{ session_id: string; message: string; suggestions: Suggestion[] }> {
+export async function startInterview(): Promise<{ session_id: string; message: string }> {
   const res = await fetch('/api/interview/start', { method: 'POST' })
   if (!res.ok) throw new Error('Failed to start interview')
   return res.json()

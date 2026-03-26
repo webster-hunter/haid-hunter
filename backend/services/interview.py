@@ -25,7 +25,7 @@ When you want to suggest a profile update, include a JSON block in your response
 ```suggestion
 {{
   "suggestion_id": "sug_<random>",
-  "section": "experience|skills|education|certifications|activities|summary",
+  "section": "experience|skills|education|certifications|activities|summary|objectives",
   "action": "add|update|remove",
   "target": {{ ... }},
   "original": "...",
@@ -175,7 +175,7 @@ def accept_suggestion(session_id: str, suggestion_id: str) -> dict | None:
         raise KeyError(f"Session {session_id} not found")
     session = _sessions[session_id]
     suggestion = session["suggestions"].get(suggestion_id)
-    if suggestion is not None:
+    if suggestion is not None and suggestion_id not in session["accepted_suggestions"]:
         session["accepted_suggestions"].append(suggestion_id)
     return suggestion
 
@@ -186,7 +186,7 @@ def reject_suggestion(session_id: str, suggestion_id: str) -> dict | None:
         raise KeyError(f"Session {session_id} not found")
     session = _sessions[session_id]
     suggestion = session["suggestions"].get(suggestion_id)
-    if suggestion is not None:
+    if suggestion is not None and suggestion_id not in session["rejected_suggestions"]:
         session["rejected_suggestions"].append(suggestion_id)
     return suggestion
 
