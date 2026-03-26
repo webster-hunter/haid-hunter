@@ -2,179 +2,169 @@
 
 ## Summary
 
-Replace the direct `anthropic` Python SDK usage with a TypeScript sidecar service powered by `@anthropic-ai/claude-agent-sdk`. This eliminates separate API key management and billing, enables agentic tool use (file reading, web fetching), and uses the existing Claude Code subscription for all LLM calls.
+Replace the direct `anthropic` Python SDK usage with the `claude-agent-sdk` Python package. This eliminates separate API key management and billing, enables agentic tool use (file reading, web fetching), and uses the existing Claude Code subscription for all LLM calls. No architectural changes — the SDK is called in-process from the existing FastAPI services.
 
 ## Architecture
 
 ```
-Browser (React) --> FastAPI (Python :8000) --> Claude Service (Express :3001) --> Claude Code SDK
+Browser (React) --> FastAPI (Python :8000) --> claude-agent-sdk query() / ClaudeSDKClient
 ```
 
-A new `claude-service/` directory at the project root contains a small Express server that wraps `@anthropic-ai/claude-agent-sdk` `query()` calls. FastAPI delegates all LLM work to this service over localhost HTTP. The frontend is unaffected — it continues to call FastAPI endpoints.
+The `anthropic` SDK calls in `backend/services/interview.py` and `backend/services/extraction.py` are replaced with `claude_agent_sdk` calls. No new services, no new processes, no new runtimes.
 
-### Why a sidecar over in-process?
+### Why in-process over a sidecar?
 
-- The Agent SDK is a TypeScript/Node package; the backend is Python
-- HTTP between the two gives streaming support (SSE), clean error handling, independent lifecycle, and easy independent testing
-- The Node service can restart without affecting non-LLM FastAPI routes
+- The `claude-agent-sdk` Python package has full feature parity with the TypeScript SDK
+- Zero accidental complexity: no HTTP proxying, no timeout tuning, no error code mapping, no health checks, no second process to manage
+- Session state stays in a single process — no split between Python sessions and SDK sessions
+- For a locally-hosted single-developer app, operational complexity should be minimized
 
-## Claude Service
+## SDK API Surface
 
-### Directory Structure
+### One-shot calls: `query()`
 
+```python
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+options = ClaudeAgentOptions(
+    system_prompt="...",
+    max_turns=5,
+    cwd="/path/to/documents",
+    allowed_tools=["Read", "Glob"],
+    permission_mode="bypassPermissions",
+)
+
+async for message in query(prompt="Extract skills from these documents", options=options):
+    # process messages
 ```
-claude-service/
-  package.json
-  tsconfig.json
-  src/
-    index.ts              — Express server startup, route registration
-    schema.ts             — Profile type definitions and prompt schema block
-    routes/
-      interview.ts        — /interview/start, /interview/message handlers
-      extract.ts          — /extract handler
-      posting.ts          — /analyze-posting handler
-    prompts/
-      interview.ts        — System prompt for interview sessions
-      extraction.ts       — System prompt for document extraction
-      posting.ts          — System prompt for job posting analysis
+
+Used for: extraction, job posting analysis.
+
+### Multi-turn sessions: `ClaudeSDKClient`
+
+```python
+from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions
+
+options = ClaudeAgentOptions(
+    system_prompt="...",
+    max_turns=3,
+    cwd="/path/to/documents",
+    allowed_tools=["Read", "Glob"],
+    permission_mode="bypassPermissions",
+)
+
+async with ClaudeSDKClient(options=options) as client:
+    await client.query("Tell me about yourself")
+    async for msg in client.receive_response():
+        # first turn response
+
+    await client.query("I worked at Acme Corp for 5 years")
+    async for msg in client.receive_response():
+        # second turn response, full context preserved
 ```
 
-### Dependencies
+Used for: interview sessions. The client object is kept alive in the session dict for the TTL duration (30 min).
 
-- `@anthropic-ai/claude-agent-sdk`
-- `express`
-- `@types/express` (dev)
-- `tsx` (dev, for hot reload)
-- `vitest` (dev)
+## Changes by File
 
-### Endpoints
+### `backend/services/interview.py` — Rewrite
 
-#### `GET /health`
+**Current:** Creates `anthropic.Anthropic()` client, manages message history manually, sends full conversation context on each turn.
 
-Returns `{ status: "ok" }`. Used by FastAPI to verify the service is reachable.
+**New:** Manages `ClaudeSDKClient` instances per session. Each session holds a live client that maintains conversation state automatically.
 
-#### `POST /interview/start`
-
-Starts a new interview session.
-
-**Request:**
-```json
-{
-  "profile": { "summary": "...", "skills": [...], ... },
-  "documents_path": "/path/to/documents"
+**Session structure changes from:**
+```python
+_sessions[session_id] = {
+    "messages": [...],       # manual message history
+    "suggestions": {...},
+    "created_at": ...,
 }
 ```
 
-**Behavior:**
-- Calls `query()` with the interview system prompt, profile schema, current profile state, and document directory as `cwd`
-- `allowedTools: ["Read", "Glob"]`
-- `maxTurns: 3`
-- `permissionMode: "bypassPermissions"` with `allowDangerouslySkipPermissions: true`
-- Captures `session_id` from the `init` system message
-- Parses suggestions from Claude's response (JSON blocks with ` ```suggestion ` markers)
-
-**Response:**
-```json
-{
-  "session_id": "...",
-  "message": "Claude's opening question",
-  "suggestions": [
-    {
-      "section": "experience",
-      "action": "add",
-      "target": { ... },
-      "original": null,
-      "proposed": "..."
-    }
-  ]
+**To:**
+```python
+_sessions[session_id] = {
+    "client": ClaudeSDKClient,  # live SDK client, maintains own context
+    "suggestions": {...},        # indexed by suggestion_id for accept/reject
+    "created_at": ...,
 }
 ```
 
-#### `POST /interview/message`
+**System prompt:** Includes the profile schema (see Schema Injection below), the current profile state, and instructions for reading uploaded documents and proposing structured suggestions.
 
-Continues an existing interview session.
+**Suggestion parsing:** Unchanged — Claude returns suggestions as JSON blocks with ` ```suggestion ` markers. The service parses these from the SDK response text, assigns `suggestion_id`s, and stores them for accept/reject.
 
-**Request:**
-```json
+**Session cleanup:** On TTL expiry or explicit close, the `ClaudeSDKClient` context manager is exited to release resources. The existing cleanup logic (max 20 sessions, 30 min TTL) remains.
+
+### `backend/services/extraction.py` — Rewrite
+
+**Current:** Creates `anthropic.Anthropic()` client, pre-reads documents via `document_reader.py`, sends content in a single message.
+
+**New:** Uses one-shot `query()` with `allowed_tools=["Read", "Glob"]` and `cwd` set to the documents directory. Claude reads the files itself using the built-in Read tool.
+
+**`merge_suggestions()` is preserved** — it is pure business logic unrelated to LLM calls. It stays in this file.
+
+**`document_reader.py` disposition:** No longer needed for LLM features since the SDK reads documents directly. The file is removed unless other non-LLM features depend on it (currently none do).
+
+### `backend/config.py` — Simplify
+
+**Remove:** `get_api_key()`, `build_claude_client()`, API key resolution logic (database lookup, env var fallback).
+
+**Keep:** `DOCUMENTS_DIR`, `PROFILE_PATH`, database config.
+
+**Add:** No new config needed — the SDK uses Claude Code's built-in auth.
+
+### `backend/routers/interview.py` — Minor changes
+
+Rate limiting, session TTL enforcement, and suggestion accept/reject endpoints remain. The router calls the rewritten `interview.py` service which now uses the SDK internally. Router contract is unchanged.
+
+### `backend/routers/extraction.py` — Minor changes
+
+Proxies to the rewritten `extraction.py` service. Router contract is unchanged.
+
+### `backend/routers/settings.py` — Remove API key endpoints
+
+**Remove:** `GET/PUT/DELETE/POST /api/settings/api-key/*` endpoints and `_resolve_api_key()`, `_mask_key()`, `build_claude_client()` helpers.
+
+**Keep:** Any non-API-key settings endpoints (if present).
+
+### `backend/services/encryption.py` — Remove
+
+No longer needed. Was only used for API key Fernet encryption.
+
+### `backend/services/document_reader.py` — Remove
+
+The SDK reads documents directly via built-in Read/Glob tools. No other features depend on this module.
+
+## New: Posting Analysis
+
+### `backend/services/posting.py` — New
+
+One-shot `query()` with `allowed_tools=["WebFetch"]`. Claude fetches the job posting page and extracts structured data.
+
+**System prompt:** Includes the profile schema so Claude can map posting requirements to profile sections.
+
+**Returns:**
+```python
 {
-  "session_id": "...",
-  "message": "User's response"
+    "key_requirements": ["5+ years Python", "AWS experience"],
+    "emphasis_areas": ["distributed systems", "team leadership"],
+    "keywords": ["microservices", "CI/CD", "agile"]
 }
 ```
 
-**Behavior:**
-- Resumes the SDK session via `query({ prompt: message, options: { resume: session_id } })`
-- The SDK's session resumption preserves full conversation context from prior turns
-- Same tool/permission config as start
-- Parses suggestions from response
+### `backend/routers/posting.py` — New
 
-**Response:**
-```json
-{
-  "message": "Claude's follow-up",
-  "suggestions": [...]
-}
-```
+**`POST /api/posting/analyze`**
+- Request: `{ "url": "https://..." }`
+- Reads current profile, passes URL + profile to posting service
+- Rate limited: 5 requests/minute
+- Response: `{ "key_requirements": [...], "emphasis_areas": [...], "keywords": [...] }`
 
-#### `POST /extract`
+## Schema Injection
 
-One-shot document extraction.
-
-**Request:**
-```json
-{
-  "profile": { ... },
-  "documents_path": "/path/to/documents"
-}
-```
-
-**Behavior:**
-- One-shot `query()` with extraction system prompt, profile schema, current profile state
-- `allowedTools: ["Read", "Glob"]`, `cwd: documents_path`
-- `maxTurns: 5` (may need multiple reads)
-- Claude reads files directly using the `Read` tool
-- Parses structured extraction result from response
-
-**Response:**
-```json
-{
-  "skills": ["Python", "React"],
-  "technologies": ["AWS", "Docker"],
-  "experience_keywords": ["Led migration", "Reduced latency by 40%"],
-  "soft_skills": ["Leadership", "Cross-functional collaboration"]
-}
-```
-
-#### `POST /analyze-posting`
-
-Analyzes a job posting URL (new feature).
-
-**Request:**
-```json
-{
-  "url": "https://example.com/job/12345",
-  "profile": { ... }
-}
-```
-
-**Behavior:**
-- One-shot `query()` with posting analysis system prompt and profile schema
-- `allowedTools: ["WebFetch"]`
-- `maxTurns: 5`
-- Claude fetches the page and extracts key information
-
-**Response:**
-```json
-{
-  "key_requirements": ["5+ years Python", "AWS experience"],
-  "emphasis_areas": ["distributed systems", "team leadership"],
-  "keywords": ["microservices", "CI/CD", "agile"]
-}
-```
-
-### Schema Injection
-
-A shared schema definition in `claude-service/src/schema.ts` defines the profile data model and exports a formatted string block for injection into system prompts:
+A shared schema definition in `backend/services/schema.py` exports a formatted string for injection into all LLM system prompts:
 
 ```
 Profile Schema:
@@ -187,202 +177,102 @@ Profile Schema:
   objectives: string[]
 ```
 
-Each prompt handler imports this and injects it into the system prompt along with the current profile state (passed from FastAPI in the request body).
+Each service imports the schema string and injects it along with the current profile state into the system prompt.
 
-### SDK Options Per Feature
+**Schema drift:** The Pydantic models in `backend/routers/profile.py` are the validation source of truth. The schema string in `schema.py` is the prompt-facing representation for Claude. Both must be updated when the profile model changes. Acceptable trade-off for a single-developer project.
 
-| Feature | `allowedTools` | `maxTurns` | Session | `permissionMode` |
-|---|---|---|---|---|
-| Interview start | `Read`, `Glob` | 3 | new (capture `session_id`) | `bypassPermissions` |
-| Interview message | `Read`, `Glob` | 3 | resume via `session_id` | `bypassPermissions` |
-| Extract | `Read`, `Glob` | 5 | one-shot | `bypassPermissions` |
-| Analyze posting | `WebFetch` | 5 | one-shot | `bypassPermissions` |
+## SDK Options Per Feature
 
-### Error Handling
+| Feature | Function | `allowed_tools` | `max_turns` | `cwd` | Session |
+|---|---|---|---|---|---|
+| Interview start | `ClaudeSDKClient` | `Read`, `Glob` | 3 | documents dir | new client |
+| Interview message | `ClaudeSDKClient` | `Read`, `Glob` | 3 | documents dir | existing client |
+| Extract | `query()` | `Read`, `Glob` | 5 | documents dir | one-shot |
+| Analyze posting | `query()` | `WebFetch` | 5 | N/A | one-shot |
 
-The service returns structured error JSON with appropriate HTTP status codes:
+All use `permission_mode="bypassPermissions"` since this is a headless backend with no interactive user. Tool access is explicitly scoped via `allowed_tools` per call, and `cwd` constrains file operations to the documents directory.
 
-```json
-{
-  "error": "Session not found",
-  "detail": "The session ID provided does not exist or has expired"
-}
-```
+## Frontend Changes
 
-| Scenario | HTTP Status |
-|---|---|
-| Invalid request body | 400 |
-| Session not found | 404 |
-| SDK query failure | 502 |
-| Timeout | 504 |
+Most frontend code is unaffected. These files require updates:
 
-### Timeout Configuration
+- **`src/api/settings.ts`** — remove API key management functions (`getApiKeyStatus`, `setApiKey`, `deleteApiKey`, `testApiKey`). Replace with a service health check or remove entirely.
+- **`src/components/settings/SettingsView.tsx`** — remove API key configuration UI. Simplify to show other settings or service status.
+- **`src/__tests__/settings/SettingsView.test.tsx`** — rewrite to match simplified Settings page.
+- **`src/api/interview.ts`** — update `startInterview` response type to include `suggestions[]` if not already present.
 
-LLM calls can take 30-60+ seconds. The Python `claude_client.py` must use explicit timeout values with `httpx.AsyncClient`:
+## Dependency Changes
 
-- Interview start/message: 120 seconds
-- Extraction: 120 seconds
-- Posting analysis: 90 seconds
+### Remove
+- `anthropic` (pip)
+- `cryptography` (pip) — only used by `encryption.py`
 
-Default `httpx` timeout (5 seconds) will cause frequent 504s if not overridden.
+### Add
+- `claude-agent-sdk` (pip)
 
-### Security Note
+### No Change
+- `httpx` stays (used for other features)
+- All npm dependencies unchanged
 
-`permissionMode: "bypassPermissions"` is used because this is a headless backend service with no interactive user. This is acceptable because:
-- The Node service only listens on localhost (not exposed to the network)
-- Tool access is explicitly scoped via `allowedTools` per endpoint
-- `cwd` is constrained to the documents directory for file operations
-- `documents_path` is always resolved from the server-side `DOCUMENTS_DIR` config, never from user input
+## Error Handling
 
-## Interview Session State
+The SDK provides typed exceptions:
 
-The interview feature has two layers of session state that must be correlated:
+| Exception | Meaning | FastAPI mapping |
+|---|---|---|
+| `CLINotFoundError` | Claude Code not installed | 503 Service Unavailable |
+| `CLIConnectionError` | Can't connect to CLI | 503 Service Unavailable |
+| `ProcessError` | SDK process failed | 502 Bad Gateway |
+| `ClaudeSDKError` | General SDK error | 500 Internal Server Error |
 
-**SDK session** — managed by the Agent SDK, identified by `session_id`. Contains the full conversation history and Claude's context. Resumed via `query({ options: { resume: session_id } })`.
-
-**Python session** — managed by FastAPI's interview router in `_sessions` dict. Contains:
-- The SDK `session_id` (for forwarding to Node service)
-- Accumulated suggestions returned from each Node service call
-- Suggestion accept/reject state
-- TTL tracking (30 min expiry, max 20 concurrent)
-
-**Flow:**
-1. `/api/interview/start` → FastAPI calls Node `/interview/start` → receives `{ session_id, message, suggestions }`
-2. FastAPI creates a Python session keyed by `session_id`, stores the suggestions indexed by `suggestion_id`
-3. `/api/interview/message` → FastAPI forwards `session_id` + user message to Node → receives `{ message, suggestions }`
-4. FastAPI appends new suggestions to the Python session's suggestion store
-5. `/api/interview/accept` / `/reject` → FastAPI looks up the suggestion by ID in its local store, applies or discards it (no Node call needed)
-
-This means suggestion accept/reject remains entirely in Python — the Node service only handles LLM conversation.
-
-## Python Backend Changes
-
-### Removed
-
-- `anthropic` Python package dependency
-- `cryptography` Python package dependency (was used by `encryption.py` for API key Fernet encryption)
-- `backend/services/interview.py` — LLM logic moves to Node service
-- `backend/services/extraction.py` — LLM call logic moves to Node service. **Note:** `merge_suggestions()` is pure business logic and must be preserved — move it into `backend/routers/extraction.py` or a new `backend/services/extraction_utils.py`
-- `backend/services/document_reader.py` — the Node service reads documents directly via SDK `Read`/`Glob` tools. If document preview or other non-LLM features need text extraction later, this can be re-added.
-- `backend/routers/settings.py` API key endpoints (`GET/PUT/DELETE/POST /api/settings/api-key/*`)
-- `backend/services/encryption.py` — no longer needed for API key storage
-- `config.py` API key resolution logic (`get_api_key`, `build_claude_client`)
-
-### Simplified
-
-- **`backend/routers/interview.py`** — keeps rate limiting, session TTL management (30 min, max 20 sessions), and suggestion accept/reject logic. Delegates LLM calls to `http://localhost:3001/interview/*`
-- **`backend/routers/extraction.py`** — proxies to `http://localhost:3001/extract`
-- **`backend/config.py`** — adds `CLAUDE_SERVICE_URL` (defaults to `http://localhost:3001`), removes API key config
-
-### New
-
-- **`backend/services/claude_client.py`** — thin async HTTP client (`httpx.AsyncClient`) for calling the Node service. Handles timeouts, connection errors, and maps Node service errors to FastAPI `HTTPException`s.
-
-### Kept As-Is
-
-- Profile service (CRUD on `.profile.json`)
-- Document management
-- Application manager
-
-### Frontend Changes
-
-Most frontend code is unaffected, but these files require updates:
-
-- **`src/api/settings.ts`** — remove API key management functions (`getApiKeyStatus`, `setApiKey`, `deleteApiKey`, `testApiKey`). Replace with a service health check call if the Settings page is retained.
-- **`src/components/settings/SettingsView.tsx`** — remove API key configuration UI. Simplify to show Claude service status or other settings.
-- **`src/api/interview.ts`** — update `startInterview` response type to include `suggestions[]` (currently only returns `{ session_id, message }`)
-- **`src/__tests__/settings/SettingsView.test.tsx`** — rewrite to match simplified Settings page
-
-### New: Posting Analysis Route
-
-**`backend/routers/posting.py`** — new router at `/api/posting`.
-
-**`POST /api/posting/analyze`**
-- Request: `{ "url": "https://..." }`
-- Reads current profile via `ProfileService`, forwards URL + profile to Node `/analyze-posting`
-- Response: `{ "key_requirements": [...], "emphasis_areas": [...], "keywords": [...] }`
-- Rate limited (5 requests/minute)
-
-### Schema Drift Mitigation
-
-The profile schema is defined in two places: `claude-service/src/schema.ts` (for prompt injection) and `backend/routers/profile.py` (Pydantic models for validation). To prevent drift:
-
-- The Node service schema is the prompt-facing representation (human-readable, for Claude). It does not perform validation.
-- The Python Pydantic models remain the source of truth for data validation.
-- If the profile model changes, both must be updated. This is an acceptable trade-off for a locally-hosted single-developer project.
-
-## Dev Workflow
-
-### Starting All Services
-
-Root `package.json` scripts using `concurrently` (add as a dev dependency: `npm i -D concurrently`):
-
-```json
-{
-  "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:claude\"",
-  "dev:frontend": "vite",
-  "dev:backend": "uvicorn backend.main:app --reload --port 8000",
-  "dev:claude": "cd claude-service && npm run dev"
-}
-```
-
-### Claude Service Scripts
-
-```json
-{
-  "dev": "tsx watch src/index.ts",
-  "build": "tsc",
-  "start": "node dist/index.js",
-  "test": "vitest run"
-}
-```
-
-### Health Check
-
-The Node service exposes `GET /health`. On startup, FastAPI logs a warning if the Claude service isn't reachable but doesn't block — non-LLM features (profile CRUD, documents, applications) continue to work.
+Each service wraps SDK calls in try/except and raises `HTTPException` with appropriate status codes.
 
 ## Testing Strategy
 
-### Claude Service (Node — vitest)
-
-- **Unit tests** for each route handler: verify correct `allowedTools`, `maxTurns`, `permissionMode`, system prompt contains schema block
-- Mock `query()` from the Agent SDK — tests verify prompt construction, schema injection, session ID handling, and response parsing
-- **Health endpoint** integration test: returns 200
-
 ### Python Backend (pytest)
 
-- Existing tests for profile, documents, applications **unchanged**
-- Interview router tests mock `httpx.AsyncClient` calls to the Claude service — verify correct proxying, session management, rate limiting, suggestion accept/reject
-- Extraction router tests mock the same way
-- `claude_client.py` tests verify timeout handling, error mapping (Node 500 → FastAPI 502), and connection refused → FastAPI 503 (Service Unavailable)
+**Existing tests unchanged:** profile, documents, applications.
 
-### What We Don't Test
+**Rewritten service tests:**
+- `backend/tests/test_interview_service.py` — mock `ClaudeSDKClient` and `query()`. Verify:
+  - System prompt includes schema and profile state
+  - `allowed_tools` and `max_turns` are correct
+  - Session client is created on start and reused on message
+  - Suggestions are parsed from response text
+  - Session cleanup exits the client context manager
+- `backend/tests/test_extraction_service.py` — mock `query()`. Verify:
+  - System prompt includes schema and profile state
+  - `cwd` is set to documents directory
+  - Response is parsed into structured extraction result
+  - `merge_suggestions()` still works (pure logic, no mock needed)
+- `backend/tests/test_posting_service.py` — new. Mock `query()`. Verify:
+  - `allowed_tools` includes `WebFetch`
+  - URL is passed in prompt
+  - Response is parsed into requirements/keywords structure
 
-- Actual SDK `query()` behavior (Anthropic's responsibility)
-- LLM output quality (non-deterministic)
+**Router tests:**
+- Interview router tests verify rate limiting, session TTL, suggestion accept/reject — mock the service layer
+- Extraction router tests verify proxying to service — mock the service layer
+- Posting router tests — new, verify rate limiting and request validation
 
-### What We Do Test
+**What we don't test:** Actual SDK behavior, LLM output quality.
 
-- Prompts are constructed correctly with schema and profile data
-- Session IDs are captured and reused for multi-turn
-- Error paths (service down, timeout, malformed response)
-- Rate limits and TTL still enforced in FastAPI
-- Response parsing extracts suggestions/extraction data correctly
+**What we do test:** Prompt construction, option configuration, response parsing, error handling, session lifecycle, rate limits.
+
+### Frontend (vitest)
+
+- Settings page tests rewritten for simplified UI
+- Other frontend tests unchanged
 
 ## Migration Path
 
-1. Build the Node service with all four endpoints
-2. Create `backend/services/claude_client.py`
-3. Refactor Python interview router to proxy through the client
-4. Refactor Python extraction router to proxy through the client
-5. Remove `anthropic` dependency, API key management, encryption service
-6. Update dev scripts for concurrent startup
-7. Add the new analyze-posting endpoint (FastAPI route + frontend stub)
-
-## Settings Page Impact
-
-The Settings page currently manages the Anthropic API key. With the SDK handling auth:
-
-- Remove the API key configuration section
-- The Settings page retains any other settings (if present) or becomes a simpler page
-- If the Settings page has no other purpose, it can be simplified to show service status (Claude service health check) instead
+1. Install `claude-agent-sdk`, remove `anthropic` and `cryptography`
+2. Create `backend/services/schema.py` with profile schema string
+3. Rewrite `backend/services/interview.py` using `ClaudeSDKClient`
+4. Rewrite `backend/services/extraction.py` using `query()`, preserve `merge_suggestions()`
+5. Create `backend/services/posting.py` and `backend/routers/posting.py`
+6. Remove `backend/services/encryption.py` and `backend/services/document_reader.py`
+7. Simplify `backend/config.py` (remove API key logic)
+8. Remove API key endpoints from `backend/routers/settings.py`
+9. Update frontend settings page
+10. Update all affected tests
