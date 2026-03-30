@@ -22,6 +22,7 @@ checkedIds: Set<string>                      // which docs are checked for analy
 extractionResult: ExtractionResult | null    // analysis output; null = show preview
 extractionSelection: SelectionState          // chip toggle state (per category)
 extractionLoading: boolean                   // true while POST /analyze is in flight
+profileSkills: string[]                      // current profile.skills, loaded before analysis
 ```
 
 Right panel rendering logic:
@@ -45,11 +46,12 @@ Right panel rendering logic:
 Replaces the right panel slot when `extractionResult` is set. Props-driven (no local state, no localStorage). Contains:
 
 - Chip categories: Skills, Technologies, Experience Keywords, Soft Skills.
-- Chip toggle → calls `onToggle(category, item)` in DocumentManager.
-- "Accept Selected" button → calls `onAccept()`.
+- Each chip is compared against `existingSkills: string[]` (the flat `profile.skills` list). Chips already present in the profile are rendered in a distinct "already added" style (grayed, not toggleable, checkmark indicator) and excluded from the Accept payload. Chips not yet in the profile behave normally.
+- Chip toggle → calls `onToggle(category, item)` in DocumentManager (only for chips not already in profile).
+- "Accept Selected" button → calls `onAccept()`. Only sends chips that are selected AND not already in the profile.
 - "Re-analyze" button → calls `onReanalyze()` (re-runs with same `checkedIds`).
 - "Done" button → calls `onDismiss()` → sets `extractionResult` to null.
-- Empty result state: "No suggestions found." with a Done button.
+- Empty result state: "No suggestions found." with a Done button. If all found items are already in the profile, show "All suggestions already in your profile." with a Done button.
 
 ### ExtractionPanel (deleted)
 
@@ -67,9 +69,10 @@ Removed from `src/components/profile/ExtractionPanel.tsx`. `ProfileView` no long
 
 1. User checks documents → `checkedIds` updates.
 2. User clicks "Analyze Selected" → `DocumentManager.handleAnalyze()`.
-3. Calls `POST /api/extraction/analyze` with `{ document_ids: [...checkedIds] }`.
-4. Backend reads only those documents, runs NLP, returns `ExtractionResult`.
-5. `extractionResult` and `extractionSelection` set → right panel swaps to `ExtractionResultsPanel`.
+3. Fetches current profile (`GET /api/profile`) to capture `profile.skills` → stored in `profileSkills`.
+4. Calls `POST /api/extraction/analyze` with `{ document_ids: [...checkedIds] }`.
+5. Backend reads only those documents, runs NLP, returns `ExtractionResult`.
+6. `extractionResult`, `extractionSelection`, and `profileSkills` set → right panel swaps to `ExtractionResultsPanel`.
 
 ### Accept
 
@@ -108,7 +111,9 @@ Frontend `analyzeDocuments()` in `src/api/extraction.ts` gains an optional `docu
 | Scenario | Behavior |
 |---|---|
 | Analysis request fails | `extractionLoading` cleared; status bar shows "Analysis failed."; right panel unchanged |
+| Profile fetch fails during analyze | Analysis still proceeds; `profileSkills` treated as empty (no items marked "already added") |
 | All selected docs have no extractable text | Backend returns empty lists; panel shows "No suggestions found." |
+| All found items already in profile | Panel shows "All suggestions already in your profile." with a Done button |
 | User deletes a checked document | Its ID removed from `checkedIds` in `handleDelete` |
 | User checks docs then searches/filters | `checkedIds` persists (keyed by ID, not position) |
 | "Analyze Selected" clicked while results already showing | Re-runs analysis, replaces previous results |
@@ -130,5 +135,5 @@ Frontend `analyzeDocuments()` in `src/api/extraction.ts` gains an optional `docu
 |---|---|
 | `DocumentList.test.tsx` | Checkboxes render; checking calls `onCheck` with correct id; row click still calls `onSelect` |
 | `DocumentToolbar.test.tsx` | "Analyze Selected" absent at 0 checked; present when 1+; disabled while loading |
-| `ExtractionResultsPanel.test.tsx` | Chips render by category; toggle updates selection; Accept fires with filtered items; Done fires `onDismiss`; empty result state |
+| `ExtractionResultsPanel.test.tsx` | Chips render by category; toggle updates selection; Accept fires with filtered items; Done fires `onDismiss`; empty result state; already-in-profile chips are non-interactive with "already added" style; Accept payload excludes already-in-profile items; all-already-in-profile message |
 | `DocumentManager.test.tsx` | Right panel shows `ExtractionResultsPanel` after analysis; clicking doc clears results; delete removes from checked set |
