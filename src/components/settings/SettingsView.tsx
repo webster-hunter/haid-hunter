@@ -69,7 +69,7 @@ export default function SettingsView() {
         <div className="settings-section">
           <h3>Claude API Key</h3>
           <p className="settings-description">
-            Required for document analysis and interview features. Your key is encrypted and stored locally.
+            Required for document analysis. Your key is encrypted and stored locally.
           </p>
 
           <div className="api-key-status">

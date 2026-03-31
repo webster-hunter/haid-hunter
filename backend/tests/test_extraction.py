@@ -1,32 +1,18 @@
-import json
-from unittest.mock import patch, MagicMock
 from backend.services.extraction import extract_from_documents, merge_suggestions
-
-
-def _mock_claude_response(suggestions: dict) -> MagicMock:
-    response = MagicMock()
-    response.content = [MagicMock(text=json.dumps(suggestions))]
-    return response
 
 
 class TestExtractFromDocuments:
     def test_returns_structured_suggestions(self):
-        fake_suggestions = {
-            "skills": ["Python", "FastAPI", "React"],
-            "technologies": ["PostgreSQL", "Docker"],
-            "experience_keywords": ["led team of 5", "reduced latency by 40%"],
-            "soft_skills": ["cross-functional collaboration"],
-        }
-        mock_client = MagicMock()
-        mock_client.messages.create.return_value = _mock_claude_response(fake_suggestions)
-
-        with patch("backend.services.extraction.get_claude_client", return_value=mock_client):
-            result = extract_from_documents("Resume text here with Python and FastAPI")
-
-        assert result["skills"] == ["Python", "FastAPI", "React"]
-        assert result["technologies"] == ["PostgreSQL", "Docker"]
-        assert result["experience_keywords"] == ["led team of 5", "reduced latency by 40%"]
-        assert result["soft_skills"] == ["cross-functional collaboration"]
+        result = extract_from_documents(
+            "Python developer with FastAPI experience. "
+            "Used PostgreSQL and Docker in production."
+        )
+        assert "Python" in result["skills"]
+        assert "FastAPI" in result["skills"]
+        assert "PostgreSQL" in result["technologies"]
+        assert "Docker" in result["technologies"]
+        assert isinstance(result["experience_keywords"], list)
+        assert isinstance(result["soft_skills"], list)
 
     def test_returns_empty_on_no_documents(self):
         result = extract_from_documents("No previewable documents found.")
@@ -37,16 +23,12 @@ class TestExtractFromDocuments:
             "soft_skills": [],
         }
 
-    def test_handles_malformed_claude_response(self):
-        mock_client = MagicMock()
-        bad_response = MagicMock()
-        bad_response.content = [MagicMock(text="not valid json at all")]
-        mock_client.messages.create.return_value = bad_response
-
-        with patch("backend.services.extraction.get_claude_client", return_value=mock_client):
-            result = extract_from_documents("Some document text")
-
+    def test_returns_valid_structure_for_arbitrary_text(self):
+        result = extract_from_documents("Some document text without any recognizable keywords")
         assert "skills" in result
+        assert "technologies" in result
+        assert "experience_keywords" in result
+        assert "soft_skills" in result
         assert isinstance(result["skills"], list)
 
 
