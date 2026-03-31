@@ -8,14 +8,29 @@ interface TagSidebarProps {
   onSelectTag: (tag: string | null) => void
   onCreateTag: (name: string) => void
   onDeleteTag: (name: string) => void
+  checkedIds: Set<string>
+  onCheckTag: (tag: string) => void
 }
 
-export function TagSidebar({ tags, allDocuments, activeTag, onSelectTag, onCreateTag, onDeleteTag }: TagSidebarProps) {
+export function TagSidebar({
+  tags,
+  allDocuments,
+  activeTag,
+  onSelectTag,
+  onCreateTag,
+  onDeleteTag,
+  checkedIds,
+  onCheckTag,
+}: TagSidebarProps) {
   const [showInput, setShowInput] = useState(false)
   const [newTagName, setNewTagName] = useState('')
 
   const totalCount = allDocuments.length
   const getTagCount = (tag: string) => allDocuments.filter(d => d.tags.includes(tag)).length
+  const isTagChecked = (tag: string) => {
+    const tagDocs = allDocuments.filter(d => d.tags.includes(tag))
+    return tagDocs.length > 0 && tagDocs.every(d => checkedIds.has(d.id))
+  }
 
   const handleCreateTag = () => {
     const trimmed = newTagName.trim()
@@ -54,6 +69,14 @@ export function TagSidebar({ tags, allDocuments, activeTag, onSelectTag, onCreat
           data-testid={`tag-item-${tag}`}
           onClick={() => onSelectTag(tag)}
         >
+          <input
+            type="checkbox"
+            className="tag-checkbox"
+            checked={isTagChecked(tag)}
+            onChange={() => onCheckTag(tag)}
+            onClick={e => e.stopPropagation()}
+            aria-label={`Select all ${tag} documents`}
+          />
           <span>{tag}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span className="tag-count">({getTagCount(tag)})</span>
