@@ -12,66 +12,638 @@ logger = logging.getLogger(__name__)
 # ── Curated keyword lists ──────────────────────────────────────────────────────
 
 SKILLS_LIST = {
-    # Languages
-    "Python", "JavaScript", "TypeScript", "Java", "C", "C++", "C#", "Go", "Rust",
-    "Ruby", "PHP", "Swift", "Kotlin", "Scala", "R", "MATLAB", "Perl", "Bash",
-    "Shell", "PowerShell", "Lua", "Haskell", "Elixir", "Erlang", "Clojure",
-    # Frontend frameworks/libs
-    "React", "Angular", "Vue", "Vue.js", "Next.js", "Nuxt.js", "Svelte",
-    "Redux", "MobX", "jQuery", "HTML", "CSS", "Sass", "SCSS", "Tailwind",
-    "Bootstrap", "Material UI", "Chakra UI", "Storybook", "Webpack", "Vite",
-    # Backend frameworks/libs
-    "FastAPI", "Django", "Flask", "Express", "NestJS", "Spring", "Spring Boot",
-    "Rails", "Laravel", "Symfony", "ASP.NET", "Node.js", "Deno", "Bun",
-    "GraphQL", "REST", "gRPC", "WebSockets",
-    # Data / ML
-    "NumPy", "Pandas", "Scikit-learn", "TensorFlow", "PyTorch", "Keras",
-    "Hugging Face", "spaCy", "NLTK", "OpenCV", "Matplotlib", "Seaborn",
-    "Spark", "Hadoop", "Airflow", "dbt", "SQLAlchemy",
-    # Testing
-    "pytest", "Jest", "Mocha", "Chai", "Cypress", "Playwright", "Selenium",
-    "unittest", "JUnit",
-    # Other
-    "Git", "Linux", "Unix", "Agile", "Scrum", "CI/CD", "TDD", "BDD",
-    "Microservices", "GraphQL", "OAuth", "JWT", "OpenAPI",
+    # ── Programming Languages ──────────────────────────────────────────────────
+    "Python", "JavaScript", "TypeScript", "Java", "C++", "C#", "Go",
+    "Golang", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "Scala", "R", "MATLAB",
+    "Perl", "Bash", "Shell", "PowerShell", "Lua", "Haskell", "Elixir", "Erlang",
+    "Clojure", "F#", "OCaml", "Groovy", "Dart", "Julia", "Nim", "Zig", "Crystal",
+    "Fortran", "COBOL", "Ada", "Assembly", "VHDL", "Verilog", "Prolog",
+    "Lisp", "Scheme", "Racket", "Smalltalk", "Tcl", "Awk", "Solidity",
+    "Vyper", "WebAssembly", "WASM", "SQL", "PL/SQL",
+    "T-SQL", "HiveQL", "Apex", "ABAP", "VBA", "VBScript",
+    "Objective-C", "CoffeeScript", "ReasonML", "PureScript",
+    "Elm", "ClojureScript", "GDScript", "HLSL", "GLSL", "CUDA", "OpenCL",
+    "MicroPython", "CircuitPython", "Arduino", "Processing",
+
+    # ── Frontend Frameworks / Libraries ───────────────────────────────────────
+    "React", "React.js", "ReactJS", "Angular", "AngularJS", "Vue", "Vue.js",
+    "VueJS", "Next.js", "NextJS", "Nuxt.js", "NuxtJS", "Svelte", "SvelteKit",
+    "SolidJS", "Solid.js", "Qwik", "Astro", "Remix", "Gatsby", "Ember.js",
+    "EmberJS", "Backbone.js", "BackboneJS", "Preact", "Lit", "Alpine.js",
+    "AlpineJS", "HTMX", "Stimulus", "Turbo", "Hotwire", "Mithril", "Inferno",
+    "Redux", "Redux Toolkit", "MobX", "Zustand", "Recoil", "Jotai", "XState",
+    "React Query", "TanStack Query", "SWR", "Apollo Client", "Urql",
+    "jQuery", "Prototype.js",
+
+    # ── Frontend Styling ──────────────────────────────────────────────────────
+    "HTML", "HTML5", "CSS", "CSS3", "Sass", "SCSS", "Less", "Stylus",
+    "Tailwind", "Tailwind CSS", "Bootstrap", "Foundation", "Bulma",
+    "Material UI", "MUI", "Ant Design", "Chakra UI", "Mantine", "Shadcn/ui",
+    "Radix UI", "Headless UI", "DaisyUI", "Semantic UI", "Vuetify",
+    "PrimeVue", "Quasar", "Element Plus", "Naive UI", "Flowbite",
+    "CSS Modules", "Styled Components", "Emotion", "Stitches", "Vanilla Extract",
+    "Storybook",
+
+    # ── Backend Frameworks ─────────────────────────────────────────────────────
+    "FastAPI", "Django", "Django REST Framework", "DRF", "Flask", "Litestar",
+    "Starlette", "Tornado", "Sanic", "Falcon", "Bottle", "Pyramid",
+    "Express", "Express.js", "ExpressJS", "NestJS", "Nest.js", "Fastify",
+    "Koa", "Hapi", "AdonisJS", "Feathers.js", "Loopback",
+    "Spring", "Spring Boot", "Spring MVC", "Spring Security", "Spring Cloud",
+    "Micronaut", "Quarkus", "Vert.x", "Dropwizard", "Play Framework",
+    "Rails", "Ruby on Rails", "Sinatra", "Hanami",
+    "Laravel", "Symfony", "Lumen", "CodeIgniter", "CakePHP", "Slim", "Phalcon",
+    "ASP.NET", "ASP.NET Core", ".NET", ".NET Core", "Blazor", "SignalR",
+    "Node.js", "NodeJS", "Deno", "Bun",
+    "Gin", "Echo", "Fiber", "Chi", "Gorilla", "Beego",
+    "Actix", "Rocket", "Axum", "Warp", "Tide",
+    "Phoenix", "Plug", "Absinthe",
+    "Ktor", "Vapor",
+
+    # ── API Standards and Protocols ────────────────────────────────────────────
+    "REST", "RESTful", "GraphQL", "gRPC", "WebSockets", "WebSocket",
+    "SOAP", "XML-RPC", "JSON-RPC", "Thrift", "Avro", "Protobuf",
+    "Protocol Buffers", "OpenAPI", "Swagger", "AsyncAPI", "RAML",
+    "OData", "HAL", "HATEOAS", "tRPC",
+    "OAuth", "OAuth2", "OAuth 2.0", "OpenID Connect", "OIDC",
+    "JWT", "SAML", "LDAP", "Active Directory", "SSO",
+    "HTTP", "HTTPS", "HTTP/2", "HTTP/3", "QUIC",
+    "TCP/IP", "UDP", "DNS", "TLS", "SSL", "mTLS",
+    "WebRTC", "Server-Sent Events", "SSE",
+
+    # ── Mobile Development ─────────────────────────────────────────────────────
+    "iOS", "Android", "React Native", "Flutter", "Xamarin", "Ionic",
+    "Capacitor", "Cordova", "PhoneGap", "NativeScript", "Expo",
+    "SwiftUI", "UIKit", "AppKit", "Jetpack Compose", "Android SDK",
+    "Kotlin Multiplatform", "KMM", "MAUI", ".NET MAUI",
+    "Xcode", "Android Studio",
+
+    # ── Data Science / Analytics ───────────────────────────────────────────────
+    "NumPy", "Pandas", "Polars", "Dask", "Vaex",
+    "Matplotlib", "Seaborn", "Plotly", "Bokeh", "Altair", "Dash",
+    "Jupyter", "JupyterLab", "Jupyter Notebook", "IPython",
+    "SciPy", "Statsmodels",
+    "SQLAlchemy", "Alembic", "Peewee", "Tortoise ORM",
+
+    # ── Machine Learning / AI ─────────────────────────────────────────────────
+    "TensorFlow", "PyTorch", "Keras", "JAX", "Flax",
+    "Scikit-learn", "sklearn", "XGBoost", "LightGBM", "CatBoost",
+    "Hugging Face", "Transformers", "Diffusers", "PEFT",
+    "LangChain", "LlamaIndex", "Haystack", "Semantic Kernel",
+    "spaCy", "NLTK", "Gensim", "TextBlob", "FastText",
+    "OpenCV", "PIL", "Pillow", "torchvision", "Detectron2", "YOLO",
+    "MLflow", "Weights & Biases", "W&B", "Neptune",
+    "Kubeflow", "Metaflow", "ZenML", "Kedro", "DVC",
+    "ONNX", "TensorRT", "TorchServe", "BentoML", "Seldon",
+    "Ray", "Ray Tune", "Ray Serve",
+    "Optuna", "Hyperopt",
+    "FAISS", "Annoy",
+    "LLM", "RAG", "fine-tuning", "prompt engineering",
+    "reinforcement learning", "computer vision",
+    "NLP", "natural language processing",
+    "machine learning", "deep learning",
+
+    # ── Data Engineering ──────────────────────────────────────────────────────
+    "Apache Spark", "PySpark", "Hadoop", "MapReduce", "HDFS",
+    "Apache Flink", "Flink", "Apache Beam", "Beam",
+    "Apache Hive", "Hive", "Presto", "Trino", "Apache Druid",
+    "Apache Iceberg", "Delta Lake", "Apache Hudi",
+    "dbt", "Apache Airflow", "Airflow", "Prefect", "Dagster", "Luigi",
+    "Apache NiFi", "Talend", "Informatica", "Fivetran", "Airbyte", "Stitch",
+
+    # ── Testing ───────────────────────────────────────────────────────────────
+    "pytest", "unittest", "hypothesis",
+    "Jest", "Vitest", "Mocha", "Chai", "Jasmine", "Karma",
+    "Cypress", "Playwright", "Selenium", "WebdriverIO", "Puppeteer",
+    "Nightwatch.js", "Appium",
+    "JUnit", "TestNG", "Mockito", "AssertJ",
+    "RSpec", "Minitest", "Capybara",
+    "PHPUnit", "Pest", "Behat",
+    "xUnit", "NUnit", "MSTest", "SpecFlow",
+    "k6", "Locust", "JMeter", "Gatling", "Artillery",
+    "Postman", "Insomnia", "Newman", "Pact", "WireMock",
+    "Cucumber", "Behave",
+    "SonarQube", "SonarCloud", "CodeClimate",
+    "ESLint", "Prettier", "Black", "Ruff", "Flake8", "Pylint", "Mypy",
+    "Rubocop", "Stylelint",
+    "TDD", "BDD", "ATDD", "mutation testing",
+
+    # ── Build Tools / Bundlers / Package Managers ─────────────────────────────
+    "Webpack", "Vite", "Rollup", "Parcel", "esbuild", "Turbopack",
+    "Gulp", "Grunt",
+    "Babel", "SWC",
+    "npm", "Yarn", "pnpm",
+    "pip", "Poetry", "Pipenv", "uv", "conda", "Anaconda",
+    "Maven", "Gradle", "Ant", "SBT",
+    "Cargo",
+    "Bundler", "RubyGems",
+    "Composer",
+    "NuGet", "MSBuild",
+    "Bazel", "Buck", "Pants", "Nx", "Turborepo", "Lerna",
+    "Make", "CMake", "Meson",
+
+    # ── Version Control ────────────────────────────────────────────────────────
+    "Git", "GitHub", "GitLab", "Bitbucket", "Mercurial", "SVN",
+    "Subversion", "Perforce",
+    "Git Flow", "Trunk-based development", "Feature flags",
+    "Conventional Commits", "Semantic versioning", "SemVer",
+
+    # ── DevOps / Development Practices ────────────────────────────────────────
+    "CI/CD", "Continuous Integration", "Continuous Deployment",
+    "Continuous Delivery", "DevOps", "DevSecOps", "GitOps", "MLOps",
+    "SRE", "Site Reliability Engineering",
+    "Agile", "Scrum", "Kanban", "SAFe", "XP", "Extreme Programming",
+    "Lean", "Waterfall",
+    "Pair programming", "Code review",
+    "Domain-Driven Design", "DDD", "Event-Driven Architecture",
+    "Event Sourcing", "CQRS", "Hexagonal Architecture",
+    "Clean Architecture", "Microservices", "Monolith", "SOA",
+    "Serverless", "12-factor app", "Cloud-native",
+    "Blue-green deployment", "Canary deployment",
+    "Infrastructure as Code",
+
+    # ── Security ──────────────────────────────────────────────────────────────
+    "OWASP", "Penetration testing", "Pen testing",
+    "SAST", "DAST", "SCA",
+    "Vulnerability scanning", "Threat modeling", "Zero Trust",
+    "PKI", "Secrets management",
+    "Encryption", "AES", "RSA", "ECC", "SHA", "bcrypt",
+    "RBAC", "ABAC", "IAM",
+    "GDPR", "HIPAA", "SOC 2", "PCI DSS", "ISO 27001", "FedRAMP",
+    "CVE", "CVSS",
+    "OAuth", "FIDO2", "WebAuthn", "MFA", "2FA",
+    "SIEM", "WAF",
+
+    # ── Databases – Concepts ──────────────────────────────────────────────────
+    "SQL", "NoSQL", "NewSQL", "ACID",
+    "Database design", "Schema design", "Normalization",
+    "Indexing", "Query optimization",
+    "Stored procedures", "Transactions", "Replication", "Sharding",
+    "ORM", "ActiveRecord", "Sequelize", "TypeORM", "Prisma",
+    "Drizzle", "Mongoose",
+    "Full-text search", "Vector search",
+
+    # ── Cloud Concepts ─────────────────────────────────────────────────────────
+    "High availability", "Fault tolerance", "Disaster recovery",
+    "Scalability", "Auto-scaling", "Load balancing", "CDN", "Edge computing",
+    "Multi-cloud", "Hybrid cloud", "Cloud migration", "Cost optimization",
+
+    # ── Game Development ──────────────────────────────────────────────────────
+    "Unity", "Unreal Engine", "Godot", "Phaser", "Babylon.js",
+    "Three.js", "WebGL", "OpenGL", "Vulkan", "DirectX",
+
+    # ── Embedded / Systems ────────────────────────────────────────────────────
+    "Embedded C", "RTOS", "FreeRTOS", "Zephyr",
+    "Raspberry Pi", "ESP32", "STM32",
+    "UART", "SPI", "I2C", "CAN bus",
+    "Linux kernel", "Device drivers", "Yocto",
+
+    # ── Accessibility ─────────────────────────────────────────────────────────
+    "WCAG", "WCAG 2.1", "WCAG 2.2", "ARIA", "WAI-ARIA",
+    "Section 508", "Accessibility testing",
+    "Inclusive design", "Universal design",
+
+    # ── Design Tools ──────────────────────────────────────────────────────────
+    "Figma", "Sketch", "Adobe XD", "InVision", "Zeplin", "Framer",
+    "Adobe Photoshop", "Adobe Illustrator",
+
+    # ── Documentation ─────────────────────────────────────────────────────────
+    "Markdown", "Sphinx", "MkDocs", "Docusaurus", "GitBook", "Confluence",
+    "JSDoc", "TSDoc", "Javadoc", "Swagger UI", "Redoc",
+
+    # ── Low-Code / No-Code / Business Platforms ───────────────────────────────
+    "Salesforce", "Salesforce Lightning", "Salesforce Apex",
+    "ServiceNow", "OutSystems", "Mendix", "Appian", "Power Apps",
+    "Power Automate", "Power BI", "Tableau", "Retool",
+    "WordPress", "Shopify", "Zapier",
+
+    # ── Blockchain / Web3 ─────────────────────────────────────────────────────
+    "Blockchain", "Ethereum", "Web3.js", "Ethers.js",
+    "Hardhat", "Truffle", "Foundry", "OpenZeppelin", "IPFS",
+    "Smart contracts",
 }
+
 
 TECHNOLOGIES_LIST = {
-    # Databases
-    "PostgreSQL", "MySQL", "SQLite", "MongoDB", "Redis", "Elasticsearch",
-    "Cassandra", "DynamoDB", "Firestore", "CockroachDB", "MariaDB", "Oracle",
-    "MS SQL", "SQL Server", "Neo4j", "InfluxDB", "Snowflake", "BigQuery",
-    # Cloud / Infrastructure
-    "AWS", "Azure", "GCP", "Google Cloud", "Cloudflare", "Vercel", "Netlify",
-    "Heroku", "DigitalOcean", "Linode",
-    # Containers / Orchestration
-    "Docker", "Kubernetes", "Helm", "Podman", "Docker Compose", "ECS", "EKS",
-    "AKS", "GKE", "OpenShift",
-    # IaC / DevOps
-    "Terraform", "Ansible", "Pulumi", "CloudFormation", "Packer",
-    "Jenkins", "GitHub Actions", "GitLab CI", "CircleCI", "Travis CI",
-    "ArgoCD", "Flux", "Spinnaker",
-    # Messaging / Streaming
-    "Kafka", "RabbitMQ", "SQS", "SNS", "Pub/Sub", "NATS", "ZeroMQ",
-    # Monitoring / Observability
-    "Prometheus", "Grafana", "Datadog", "New Relic", "Splunk", "ELK",
-    "Logstash", "Kibana", "Jaeger", "OpenTelemetry", "Sentry",
-    # Storage / CDN
-    "S3", "GCS", "Azure Blob", "CloudFront", "Fastly",
-    # Misc platforms
-    "Nginx", "Apache", "HAProxy", "Istio", "Envoy", "Consul", "Vault",
+    # ── Cloud Providers ────────────────────────────────────────────────────────
+    "AWS", "Amazon Web Services", "Azure", "Microsoft Azure",
+    "GCP", "Google Cloud", "Google Cloud Platform",
+    "Oracle Cloud", "OCI", "IBM Cloud", "Alibaba Cloud",
+    "Cloudflare", "Vercel", "Netlify", "Render", "Railway", "Fly.io",
+    "Heroku", "DigitalOcean", "Linode", "Akamai", "Vultr", "Hetzner",
+
+    # ── AWS Services ──────────────────────────────────────────────────────────
+    "EC2", "ECS", "EKS", "Fargate", "Lambda", "App Runner",
+    "Elastic Beanstalk", "LightSail",
+    "S3", "S3 Glacier", "EFS", "FSx",
+    "RDS", "Aurora", "DynamoDB", "ElastiCache", "DocumentDB",
+    "Neptune", "Timestream", "QLDB", "MemoryDB",
+    "Redshift", "EMR", "Glue", "Athena", "Lake Formation",
+    "Kinesis", "SQS", "SNS", "EventBridge", "MQ",
+    "CloudFront", "Route 53", "VPC", "Direct Connect", "Transit Gateway",
+    "ALB", "NLB", "API Gateway", "App Mesh",
+    "IAM", "Cognito", "Secrets Manager", "KMS", "WAF", "Shield",
+    "GuardDuty", "Inspector", "Macie", "Security Hub",
+    "CloudWatch", "CloudTrail", "X-Ray", "Config", "Trusted Advisor",
+    "CodeCommit", "CodeBuild", "CodeDeploy", "CodePipeline", "CodeArtifact",
+    "CloudFormation", "CDK", "SAM", "Amplify", "AppSync",
+    "SageMaker", "Bedrock", "Rekognition", "Textract", "Comprehend",
+    "Translate", "Transcribe", "Polly", "Lex",
+    "Batch", "Step Functions",
+    "ECR", "Elastic Container Registry",
+    "OpenSearch Service",
+    "MSK", "Managed Kafka",
+    "CloudHSM", "ACM",
+    "Systems Manager", "SSM", "Parameter Store",
+    "Cost Explorer", "Budgets",
+    "Organizations", "Control Tower",
+    "Global Accelerator", "DataSync",
+    "IoT Core", "IoT Greengrass",
+
+    # ── Azure Services ────────────────────────────────────────────────────────
+    "Azure Virtual Machines", "Azure VM", "AKS", "Azure Container Instances",
+    "Azure Functions", "Azure App Service", "Azure Container Apps",
+    "Azure Static Web Apps", "Azure Kubernetes Service",
+    "Azure Blob Storage", "Azure Data Lake", "Azure Files",
+    "Azure SQL", "Azure SQL Database", "Azure Cosmos DB",
+    "Azure Database for PostgreSQL", "Azure Database for MySQL",
+    "Azure Cache for Redis",
+    "Azure Synapse Analytics", "Azure Data Factory", "Azure Databricks",
+    "Azure Stream Analytics", "Azure Event Hubs", "Azure Service Bus",
+    "Azure Event Grid",
+    "Azure CDN", "Azure Front Door", "Azure DNS", "Azure Load Balancer",
+    "Azure VNet", "Azure ExpressRoute", "Azure Application Gateway",
+    "Azure API Management",
+    "Azure Active Directory", "Azure AD", "Entra ID",
+    "Azure Key Vault", "Azure Defender", "Azure Sentinel",
+    "Azure Monitor", "Azure Log Analytics", "Azure Application Insights",
+    "Azure DevOps", "Azure Repos", "Azure Pipelines", "Azure Artifacts",
+    "ARM Templates", "Bicep",
+    "Azure Machine Learning", "Azure Cognitive Services", "Azure OpenAI",
+    "Azure Batch", "Azure Logic Apps",
+    "Azure Container Registry", "ACR",
+    "Azure Notification Hubs", "Azure SignalR",
+    "Power Platform", "Power BI", "Power Apps", "Power Automate",
+
+    # ── GCP Services ──────────────────────────────────────────────────────────
+    "GKE", "Google Kubernetes Engine", "Cloud Run", "Cloud Functions",
+    "Compute Engine", "App Engine", "Cloud Build",
+    "Cloud Storage", "Cloud SQL", "Firestore", "Firebase",
+    "Cloud Spanner", "Cloud Bigtable", "AlloyDB", "Memorystore",
+    "BigQuery", "Dataflow", "Dataproc", "Pub/Sub", "Datastream",
+    "Cloud CDN", "Cloud DNS", "Cloud Load Balancing", "Cloud Armor",
+    "Identity Platform", "Firebase Auth",
+    "Secret Manager", "Cloud KMS",
+    "Cloud Monitoring", "Cloud Logging", "Cloud Trace",
+    "Cloud Source Repositories", "Cloud Deploy", "Artifact Registry",
+    "Vertex AI", "AutoML", "Vision AI",
+    "Speech-to-Text", "Text-to-Speech", "Dialogflow",
+    "Cloud Composer", "Workflows", "Eventarc",
+    "Google Analytics", "Firebase Analytics",
+    "Looker", "Looker Studio",
+
+    # ── Containers and Orchestration ──────────────────────────────────────────
+    "Docker", "Docker Compose", "Docker Swarm", "Podman", "Buildah",
+    "Kubernetes", "K8s", "Helm", "Kustomize", "Skaffold",
+    "OpenShift", "Rancher", "Tanzu", "Nomad",
+    "containerd", "CRI-O",
+    "Knative", "KEDA",
+    "Linkerd", "Istio", "Consul Connect",
+    "OPA", "Gatekeeper", "Falco",
+
+    # ── CI/CD Platforms ────────────────────────────────────────────────────────
+    "Jenkins", "GitHub Actions", "GitLab CI", "GitLab CI/CD",
+    "CircleCI", "Travis CI", "TeamCity", "Bamboo", "Buildkite",
+    "Drone CI", "Tekton", "Argo Workflows",
+    "ArgoCD", "Flux", "FluxCD", "Spinnaker", "Harness", "Octopus Deploy",
+    "Azure Pipelines", "Azure DevOps",
+    "Bitbucket Pipelines", "Semaphore CI", "Codefresh",
+
+    # ── Relational Databases ──────────────────────────────────────────────────
+    "PostgreSQL", "Postgres", "MySQL", "MariaDB", "SQLite", "Oracle",
+    "Oracle Database", "MS SQL Server", "SQL Server", "Microsoft SQL Server",
+    "IBM Db2", "SAP HANA", "Teradata",
+    "CockroachDB", "YugabyteDB", "SingleStore", "PlanetScale", "Neon",
+    "Supabase", "TimescaleDB",
+
+    # ── NoSQL Databases ───────────────────────────────────────────────────────
+    "MongoDB", "CouchDB", "Couchbase", "ArangoDB",
+    "Cassandra", "Apache Cassandra", "ScyllaDB", "HBase",
+    "Redis", "KeyDB", "Dragonfly",
+    "DynamoDB", "FaunaDB",
+    "Elasticsearch", "OpenSearch", "Solr", "MeiliSearch", "Typesense",
+    "Algolia",
+    "Neo4j", "Amazon Neptune",
+    "InfluxDB", "VictoriaMetrics",
+    "Firebase Realtime Database", "Firestore",
+    "LevelDB", "RocksDB",
+
+    # ── Data Warehouses / OLAP ────────────────────────────────────────────────
+    "Snowflake", "BigQuery", "Redshift", "Azure Synapse", "Databricks",
+    "ClickHouse", "Druid", "Pinot", "Greenplum",
+    "Vertica", "DuckDB", "Starburst", "Trino", "Presto",
+
+    # ── Message Queues / Streaming ────────────────────────────────────────────
+    "Apache Kafka", "Kafka", "Confluent Kafka",
+    "RabbitMQ", "ActiveMQ",
+    "NATS", "NATS JetStream", "ZeroMQ",
+    "Apache Pulsar", "Pulsar", "Redpanda",
+    "Celery", "Sidekiq", "Bull", "BullMQ",
+    "Temporal", "Apache Camel",
+
+    # ── Monitoring / Logging / Observability ──────────────────────────────────
+    "Prometheus", "Grafana", "Grafana Loki", "Grafana Tempo",
+    "Datadog", "New Relic", "Dynatrace", "AppDynamics",
+    "Splunk", "Sumo Logic",
+    "ELK Stack", "Logstash", "Kibana", "Beats", "Filebeat",
+    "OpenTelemetry", "Jaeger", "Zipkin", "Honeycomb",
+    "Sentry", "Rollbar", "Bugsnag",
+    "PagerDuty", "OpsGenie", "Alertmanager",
+    "CloudWatch", "Azure Monitor", "Google Cloud Monitoring",
+    "Nagios", "Zabbix", "Netdata",
+
+    # ── Infrastructure as Code ────────────────────────────────────────────────
+    "Terraform", "OpenTofu", "Pulumi", "AWS CDK", "AWS SAM",
+    "CloudFormation", "ARM Templates", "Bicep",
+    "Ansible", "Puppet", "Chef", "SaltStack",
+    "Packer", "Vagrant", "Crossplane",
+    "Terragrunt", "Atlantis",
+
+    # ── Service Mesh / API Gateway / Networking ───────────────────────────────
+    "Istio", "Linkerd", "Consul", "Envoy", "Traefik", "Nginx", "HAProxy", "Caddy",
+    "Kong", "Kong Gateway", "AWS API Gateway",
+    "Azure API Management", "Apigee",
+    "Cloudflare Workers", "Fastly",
+
+    # ── Security Platforms ────────────────────────────────────────────────────
+    "HashiCorp Vault", "Vault", "AWS Secrets Manager", "Azure Key Vault",
+    "Google Secret Manager",
+    "Okta", "Auth0", "Keycloak", "FusionAuth", "Ping Identity",
+    "CrowdStrike", "Carbon Black", "SentinelOne",
+    "Snyk", "Aqua Security",
+    "OWASP ZAP", "Burp Suite", "Nessus", "Qualys",
+    "Trivy", "Grype",
+    "AWS Security Hub", "AWS GuardDuty", "Azure Defender",
+
+    # ── Storage Services ──────────────────────────────────────────────────────
+    "S3", "Azure Blob Storage", "Google Cloud Storage", "GCS",
+    "MinIO", "Ceph", "HDFS",
+    "Backblaze B2",
+
+    # ── CDN / Edge ────────────────────────────────────────────────────────────
+    "CloudFront", "Cloudflare CDN", "Fastly", "Akamai",
+    "Azure CDN", "Google Cloud CDN",
+    "Vercel Edge", "Netlify Edge Functions",
+
+    # ── Data Pipeline / ETL / ELT ─────────────────────────────────────────────
+    "Fivetran", "Airbyte", "Stitch", "Talend", "Informatica",
+    "dbt", "dbt Cloud", "dbt Core",
+    "Apache Airflow", "Airflow", "Prefect", "Dagster", "Mage",
+    "Azure Data Factory", "AWS Glue", "Google Dataflow",
+    "Kafka Streams", "ksqlDB",
+
+    # ── Communication / Collaboration ─────────────────────────────────────────
+    "Slack", "Microsoft Teams", "Discord", "Google Chat",
+    "Zoom", "Webex", "Google Meet",
+    "Confluence", "Notion", "GitBook",
+    "Jira", "Linear", "Trello", "Asana", "Monday.com",
+    "ClickUp", "Basecamp", "YouTrack",
+    "GitHub Issues", "GitLab Issues",
+    "Figma", "Miro", "Mural", "Lucidchart",
+    "PagerDuty", "OpsGenie",
+
+    # ── IDEs and Development Environments ─────────────────────────────────────
+    "VS Code", "Visual Studio Code", "Visual Studio",
+    "IntelliJ IDEA", "IntelliJ", "PyCharm", "WebStorm",
+    "GoLand", "RubyMine", "Rider", "CLion", "DataGrip",
+    "PhpStorm", "Android Studio",
+    "Vim", "Neovim", "Emacs",
+    "Eclipse", "NetBeans", "Sublime Text",
+    "Xcode", "Cursor",
+    "Jupyter", "RStudio",
+    "GitHub Codespaces", "Gitpod", "Replit",
+
+    # ── Testing / Quality Platforms ────────────────────────────────────────────
+    "SonarQube", "SonarCloud", "CodeClimate", "Coverity",
+    "Checkmarx", "Veracode", "Fortify",
+    "Browserstack", "Sauce Labs", "LambdaTest",
+    "TestRail", "Xray", "Zephyr",
+    "LaunchDarkly", "Split.io", "Unleash",
+
+    # ── Analytics / BI ────────────────────────────────────────────────────────
+    "Tableau", "Power BI", "Looker", "Metabase", "Redash",
+    "Apache Superset", "Mode Analytics", "Hex",
+    "Google Analytics", "Mixpanel", "Amplitude", "Segment",
+    "Heap", "FullStory", "Hotjar", "Pendo",
+
+    # ── AI / ML Platforms ─────────────────────────────────────────────────────
+    "OpenAI API", "Anthropic", "Cohere", "Ollama",
+    "Hugging Face Hub", "Replicate",
+    "AWS SageMaker", "Azure Machine Learning", "Vertex AI",
+    "MLflow", "Weights & Biases",
+    "Pinecone", "Weaviate", "Qdrant", "Chroma",
+
+    # ── VCS Hosting / Artifact Registries ────────────────────────────────────
+    "GitHub", "GitLab", "Bitbucket", "Azure Repos",
+    "Docker Hub", "JFrog Artifactory", "Nexus Repository",
+    "GitHub Packages", "GitLab Container Registry", "ECR", "ACR",
+
+    # ── Operating Systems / Infrastructure ────────────────────────────────────
+    "Linux", "Ubuntu", "Debian", "CentOS", "RHEL", "Fedora",
+    "Alpine Linux", "Windows Server",
+    "VMware", "vSphere", "ESXi", "Hyper-V", "KVM",
+    "Proxmox",
+    "Ansible Tower", "AWX",
+    "Tailscale", "WireGuard", "OpenVPN",
+    "Let's Encrypt", "Certbot",
 }
 
+
 SOFT_SKILLS_LIST = {
-    "communication", "leadership", "teamwork", "collaboration", "mentoring",
-    "problem-solving", "problem solving", "critical thinking", "adaptability",
-    "time management", "organization", "attention to detail", "detail-oriented",
-    "creativity", "innovation", "initiative", "ownership", "accountability",
-    "empathy", "emotional intelligence", "conflict resolution", "negotiation",
-    "presentation", "public speaking", "writing", "documentation",
-    "prioritization", "multitasking", "deadline-driven", "self-motivated",
-    "analytical", "strategic thinking", "decision-making", "coaching",
-    "facilitation", "stakeholder management", "cross-functional", "interpersonal",
+    # ── Communication ─────────────────────────────────────────────────────────
+    "communication", "written communication", "verbal communication",
+    "technical communication", "effective communication",
+    "active listening", "listening skills",
+    "presentation skills", "public speaking", "storytelling",
+    "technical writing", "documentation skills", "writing skills",
+    "proposal writing", "report writing", "business writing",
+    "cross-functional communication", "asynchronous communication",
+    "meeting facilitation", "facilitating discussions",
+
+    # ── Leadership ────────────────────────────────────────────────────────────
+    "leadership", "technical leadership", "thought leadership",
+    "engineering leadership", "team leadership", "project leadership",
+    "servant leadership",
+    "people management", "team management",
+    "managing distributed teams", "managing remote teams",
+    "leading cross-functional teams",
+    "influence without authority", "driving alignment",
+    "decision making", "decision-making", "sound judgment",
+    "executive presence", "strategic leadership",
+    "change leadership", "leading through ambiguity",
+    "hiring", "recruiting",
+    "performance management", "performance reviews",
+    "giving feedback", "receiving feedback", "constructive feedback",
+    "radical candor",
+
+    # ── Team Collaboration ────────────────────────────────────────────────────
+    "teamwork", "collaboration", "team collaboration",
+    "cross-functional collaboration", "cross-team collaboration",
+    "building relationships", "relationship building",
+    "partnership", "working with stakeholders",
+    "team player", "collaborative",
+    "remote team collaboration",
+
+    # ── Customer / Client Skills ──────────────────────────────────────────────
+    "customer focus", "customer-centric", "customer empathy",
+    "customer service", "client management", "client relations",
+    "client communication", "stakeholder communication",
+    "managing expectations", "expectation setting",
+    "user empathy", "user advocacy", "user research",
+    "gathering requirements", "requirements elicitation",
+    "discovery", "needs analysis", "business analysis",
+    "account management", "vendor management",
+
+    # ── Project Management ────────────────────────────────────────────────────
+    "project management", "program management", "portfolio management",
+    "delivery management", "milestone management", "scope management",
+    "project planning", "workback planning", "scheduling",
+    "resource management", "capacity planning",
+    "risk management", "risk identification", "risk mitigation",
+    "dependency management",
+    "status reporting", "project status updates",
+    "budget management", "budget tracking",
+    "sprint planning", "backlog grooming", "backlog refinement",
+    "release management", "release planning",
+    "agile project management", "scrum master",
+
+    # ── Problem Solving / Analytical ──────────────────────────────────────────
+    "problem solving", "problem-solving", "complex problem solving",
+    "analytical thinking", "analytical skills",
+    "critical thinking", "systems thinking",
+    "root cause analysis", "RCA", "troubleshooting",
+    "data-driven decision making", "data-driven",
+    "structured thinking", "first principles thinking",
+    "creative problem solving", "innovative thinking",
+    "logical reasoning", "hypothesis-driven",
+    "quantitative analysis", "qualitative analysis",
+
+    # ── Organizational / Planning Skills ──────────────────────────────────────
+    "organization", "organizational skills",
+    "time management", "managing time effectively",
+    "prioritization", "priority management",
+    "planning", "strategic planning", "operational planning",
+    "goal setting", "OKRs",
+    "execution", "bias for action",
+    "multitasking", "managing multiple priorities",
+    "attention to detail", "detail-oriented", "thoroughness",
+    "process improvement", "process documentation",
+    "workflow optimization",
+    "deadline management", "deadline-driven", "delivering on time",
+    "follow-through", "follow-up",
+
+    # ── Teaching / Mentoring ──────────────────────────────────────────────────
+    "mentoring", "mentorship", "coaching", "teaching",
+    "mentoring junior developers", "guiding junior engineers",
+    "technical mentorship", "knowledge sharing", "knowledge transfer",
+    "onboarding", "onboarding new hires",
+    "pair programming", "mob programming", "code review",
+    "writing documentation", "creating learning materials",
+    "workshop facilitation", "training delivery",
+    "blogging", "conference speaking",
+
+    # ── Agile / Process Skills ────────────────────────────────────────────────
+    "agile", "agile methodology", "agile development",
+    "scrum", "scrum ceremonies", "sprint retrospectives",
+    "kanban", "lean", "lean methodology",
+    "iterative development", "incremental delivery",
+    "continuous improvement", "kaizen",
+    "retrospectives", "blameless post-mortems", "post-mortems",
+    "standups", "daily standups",
+    "estimation", "story points", "planning poker",
+    "velocity tracking",
+
+    # ── Business Skills ────────────────────────────────────────────────────────
+    "business acumen", "business understanding", "business analysis",
+    "understanding business requirements", "translating business requirements",
+    "requirements gathering", "requirements analysis",
+    "stakeholder management", "managing stakeholders",
+    "executive communication", "C-suite communication",
+    "product sense", "product thinking", "product mindset",
+    "roadmap planning", "roadmapping",
+    "go-to-market", "launch strategy",
+    "market awareness", "competitive analysis",
+    "cost-benefit analysis", "trade-off analysis",
+    "ROI analysis", "business case development",
+    "negotiation", "contract negotiation", "vendor negotiation",
+
+    # ── Personal Effectiveness ────────────────────────────────────────────────
+    "self-motivated", "self-starter", "self-directed",
+    "proactive", "initiative", "taking initiative",
+    "ownership", "taking ownership", "accountability",
+    "reliability", "dependability",
+    "integrity", "transparency",
+    "growth mindset", "continuous learning", "learning agility",
+    "intellectual curiosity", "curiosity", "desire to learn",
+    "adaptability", "adaptable", "flexibility", "flexible",
+    "resilience", "working under pressure",
+    "ambiguity tolerance", "working with ambiguity",
+    "work ethic", "hardworking",
+    "results-oriented", "results-driven", "outcome-focused",
+    "deep work", "focus",
+    "autonomy", "independent worker", "works independently",
+    "entrepreneurial", "entrepreneurial mindset",
+    "bias for action",
+    "creative", "creativity", "innovation", "innovative",
+
+    # ── Emotional Intelligence ────────────────────────────────────────────────
+    "emotional intelligence", "self-awareness",
+    "empathy", "empathetic", "compassion",
+    "social awareness", "relationship management",
+    "conflict resolution", "conflict management",
+    "managing difficult conversations",
+    "psychological safety", "creating psychological safety",
+    "patience", "composure",
+    "humility", "intellectual humility",
+    "open-mindedness", "open to feedback",
+    "cultural sensitivity", "cultural awareness",
+
+    # ── Diversity, Equity, and Inclusion ─────────────────────────────────────
+    "diversity and inclusion", "DEI", "inclusive leadership",
+    "equity", "belonging",
+    "allyship", "bias awareness",
+    "inclusive communication", "inclusive design",
+    "accessibility advocacy",
+    "cross-cultural communication", "global mindset",
+    "multicultural teams", "working across cultures",
+
+    # ── Influence and Persuasion ──────────────────────────────────────────────
+    "persuasion", "persuasive communication", "influencing others",
+    "consensus building", "building consensus",
+    "driving alignment", "alignment across teams",
+    "navigating competing priorities",
+    "selling ideas", "pitching",
+    "advocacy", "championing initiatives",
+
+    # ── Strategy and Vision ────────────────────────────────────────────────────
+    "strategic thinking", "big picture thinking",
+    "long-term planning", "vision setting", "defining vision",
+    "technical strategy", "engineering strategy",
+    "architecture decision-making", "technical direction",
+    "balancing short-term and long-term", "thinking at scale",
+
+    # ── Professional Skills ────────────────────────────────────────────────────
+    "fast learner", "quick learner",
+    "customer obsession", "user obsession",
+    "shipping", "shipping quickly",
+    "pragmatism", "pragmatic",
+    "quality mindset", "security mindset",
+    "documentation culture",
+    "frugality", "cost consciousness",
+    "incident response", "being on-call",
+    "postmortem culture", "learning from failures",
+    "cross-cultural", "interpersonal", "interpersonal skills",
+    "facilitation", "coordination",
 }
 
 # Phrases/patterns that signal measurable accomplishments
@@ -83,7 +655,9 @@ _METRIC_PATTERN = re.compile(
     r"\d+x\b|"                           # multipliers: 3x, 10x
     r"(?:reduced|improved|increased|decreased|optimized|scaled|cut|saved|"
     r"grew|delivered|launched|built|designed|led|managed|mentored|shipped|"
-    r"automated|migrated|refactored|deployed)\b"  # achievement verbs
+    r"automated|migrated|refactored|deployed|architected|established|"
+    r"spearheaded|pioneered|streamlined|accelerated|transformed|"
+    r"implemented|developed|created|drove|enabled|supported)\b"
     r")",
     re.IGNORECASE,
 )
