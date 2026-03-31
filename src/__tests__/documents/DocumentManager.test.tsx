@@ -109,9 +109,12 @@ describe('DocumentManager', () => {
     fireEvent.click(checkboxes[0])
     await waitFor(() => expect(screen.getByText('Analyze Selected')).toBeInTheDocument())
 
-    // The test verifies Analyze Selected disappears after deletion
-    // (actual deletion UI is in DocumentPreview; we test state directly via behavior)
-    // After deletion, checkedIds should no longer include '1' so Analyze Selected disappears
-    // Simulate by testing that no unhandled errors occur — full delete flow tested in DocumentPreview tests
+    // Select the doc to show DocumentPreview with delete button
+    fireEvent.click(screen.getByText('r.pdf'))
+    await waitFor(() => expect(screen.getByText('Delete')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Delete'))
+
+    // Analyze Selected should disappear because checkedIds no longer contains '1'
+    await waitFor(() => expect(screen.queryByText('Analyze Selected')).not.toBeInTheDocument())
   })
 })
