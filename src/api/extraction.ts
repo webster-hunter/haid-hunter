@@ -5,8 +5,14 @@ export interface ExtractionResult {
   soft_skills: string[]
 }
 
-export async function analyzeDocuments(): Promise<ExtractionResult> {
-  const res = await fetch('/api/extraction/analyze', { method: 'POST' })
+export type SelectionState = Record<string, Record<string, boolean>>
+
+export async function analyzeDocuments(documentIds: string[] = []): Promise<ExtractionResult> {
+  const res = await fetch('/api/extraction/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document_ids: documentIds }),
+  })
   if (!res.ok) throw new Error('Failed to analyze documents')
   return res.json()
 }
