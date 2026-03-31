@@ -51,11 +51,11 @@ describe('DocumentToolbar', () => {
 
   it('analyze button is disabled and shows Analyzing… while extractionLoading', () => {
     render(<DocumentToolbar {...baseProps} checkedCount={0} extractionLoading={true} />)
-    expect(screen.getByText(/analyzing/i)).toBeDisabled()
+    expect(screen.getByText('Analyzing…')).toBeDisabled()
   })
 
   it('analyze button is disabled while loading even when docs are checked', () => {
     render(<DocumentToolbar {...baseProps} checkedCount={3} extractionLoading={true} />)
-    expect(screen.getByText(/analyzing/i)).toBeDisabled()
+    expect(screen.getByText('Analyzing…')).toBeDisabled()
   })
 })
