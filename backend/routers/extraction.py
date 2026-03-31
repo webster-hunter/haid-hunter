@@ -42,7 +42,7 @@ class AcceptSuggestionsRequest(BaseModel):
 
 @router.post("/analyze")
 async def analyze_documents(
-    body: AnalyzeRequest = Body(default_factory=AnalyzeRequest),
+    body: AnalyzeRequest = Body(default=AnalyzeRequest()),
 ):
     service = get_metadata_service()
     metadata = service.read()

@@ -202,3 +202,28 @@ async def test_analyze_with_nonexistent_id_skips_gracefully(mock_metadata):
             )
     assert resp.status_code == 200
     assert read_calls[0]["files"] == {}
+
+
+@pytest.mark.asyncio
+async def test_analyze_with_no_body_reads_all_docs(mock_metadata):
+    mock_meta_svc = MagicMock()
+    mock_meta_svc.read.return_value = mock_metadata
+    mock_meta_svc.docs_dir = MagicMock()
+
+    read_calls = []
+    def capture(docs_dir, meta):
+        read_calls.append(meta)
+        return "text"
+
+    with (
+        patch("backend.routers.extraction.get_metadata_service", return_value=mock_meta_svc),
+        patch("backend.routers.extraction.read_document_contents", side_effect=capture),
+        patch("backend.routers.extraction.extract_from_documents", return_value={
+            "skills": [], "technologies": [], "experience_keywords": [], "soft_skills": []
+        }),
+    ):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/extraction/analyze")
+    assert resp.status_code == 200
+    assert list(read_calls[0]["files"].keys()) == list(mock_metadata["files"].keys())
