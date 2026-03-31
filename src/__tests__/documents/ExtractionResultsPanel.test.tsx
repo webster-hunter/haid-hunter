@@ -27,6 +27,10 @@ const baseProps = {
   onDismiss: vi.fn(),
 }
 
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
 describe('ExtractionResultsPanel', () => {
   it('renders chips for each category', () => {
     render(<ExtractionResultsPanel {...baseProps} />)

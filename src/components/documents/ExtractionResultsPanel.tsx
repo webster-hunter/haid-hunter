@@ -7,11 +7,11 @@ const CATEGORIES: { key: keyof ExtractionResult; label: string }[] = [
   { key: 'soft_skills', label: 'Soft Skills' },
 ]
 
-interface Props {
+interface ExtractionResultsPanelProps {
   result: ExtractionResult
   selection: SelectionState
   existingSkills: string[]
-  onToggle: (category: string, item: string) => void
+  onToggle: (category: keyof ExtractionResult, item: string) => void
   onAccept: () => void
   onReanalyze: () => void
   onDismiss: () => void
@@ -25,7 +25,7 @@ export default function ExtractionResultsPanel({
   onAccept,
   onReanalyze,
   onDismiss,
-}: Props) {
+}: ExtractionResultsPanelProps) {
   const isEmpty = CATEGORIES.every(({ key }) => result[key].length === 0)
   const allInProfile =
     !isEmpty &&

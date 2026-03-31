@@ -49,8 +49,8 @@ function DocumentItem({ doc, selected, checked, onSelect, onCheck }: DocumentIte
         type="checkbox"
         className="document-checkbox"
         checked={checked}
-        onChange={() => {}}
-        onClick={e => { e.stopPropagation(); onCheck(doc.id) }}
+        onChange={e => { e.stopPropagation(); onCheck(doc.id) }}
+        onClick={e => e.stopPropagation()}
         aria-label={`Select ${doc.display_name}`}
       />
       <div
