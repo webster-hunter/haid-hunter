@@ -32,25 +32,30 @@ describe('DocumentToolbar', () => {
     expect(screen.getByText(/sync/i)).toBeInTheDocument()
   })
 
-  it('does not show Analyze Selected when checkedCount is 0', () => {
+  it('shows Analyze All button when checkedCount is 0', () => {
     render(<DocumentToolbar {...baseProps} checkedCount={0} />)
-    expect(screen.queryByText(/analyze selected/i)).not.toBeInTheDocument()
+    expect(screen.getByText('Analyze All')).toBeInTheDocument()
   })
 
-  it('shows Analyze Selected button when checkedCount > 0', () => {
+  it('shows Analyze Selected (N) button when checkedCount > 0', () => {
     render(<DocumentToolbar {...baseProps} checkedCount={2} />)
-    expect(screen.getByText(/analyze selected/i)).toBeInTheDocument()
+    expect(screen.getByText('Analyze Selected (2)')).toBeInTheDocument()
   })
 
-  it('Analyze Selected button calls onAnalyze when clicked', async () => {
+  it('analyze button calls onAnalyze when clicked', async () => {
     const onAnalyze = vi.fn()
-    render(<DocumentToolbar {...baseProps} checkedCount={1} onAnalyze={onAnalyze} />)
-    await userEvent.click(screen.getByText(/analyze selected/i))
+    render(<DocumentToolbar {...baseProps} checkedCount={0} onAnalyze={onAnalyze} />)
+    await userEvent.click(screen.getByText('Analyze All'))
     expect(onAnalyze).toHaveBeenCalled()
   })
 
-  it('Analyze Selected button is disabled while extractionLoading is true', () => {
-    render(<DocumentToolbar {...baseProps} checkedCount={1} extractionLoading={true} />)
+  it('analyze button is disabled and shows Analyzing… while extractionLoading', () => {
+    render(<DocumentToolbar {...baseProps} checkedCount={0} extractionLoading={true} />)
+    expect(screen.getByText(/analyzing/i)).toBeDisabled()
+  })
+
+  it('analyze button is disabled while loading even when docs are checked', () => {
+    render(<DocumentToolbar {...baseProps} checkedCount={3} extractionLoading={true} />)
     expect(screen.getByText(/analyzing/i)).toBeDisabled()
   })
 })

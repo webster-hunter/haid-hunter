@@ -29,6 +29,12 @@ export function DocumentToolbar({
     }
   }
 
+  const analyzeLabel = extractionLoading
+    ? 'Analyzing…'
+    : checkedCount === 0
+      ? 'Analyze All'
+      : `Analyze Selected (${checkedCount})`
+
   return (
     <div className="document-toolbar">
       <input
@@ -54,15 +60,13 @@ export function DocumentToolbar({
       <button className="btn btn-secondary" onClick={onSync}>
         Sync
       </button>
-      {checkedCount > 0 && (
-        <button
-          className="btn btn-accent"
-          onClick={onAnalyze}
-          disabled={extractionLoading}
-        >
-          {extractionLoading ? 'Analyzing…' : 'Analyze Selected'}
-        </button>
-      )}
+      <button
+        className="btn btn-accent"
+        onClick={onAnalyze}
+        disabled={extractionLoading}
+      >
+        {analyzeLabel}
+      </button>
     </div>
   )
 }
