@@ -87,6 +87,20 @@ export default function DocumentManager() {
     })
   }
 
+  const handleCheckTag = (tag: string) => {
+    const tagDocs = allDocuments.filter(d => d.tags.includes(tag))
+    const allChecked = tagDocs.every(d => checkedIds.has(d.id))
+    setCheckedIds(prev => {
+      const next = new Set(prev)
+      if (allChecked) {
+        tagDocs.forEach(d => next.delete(d.id))
+      } else {
+        tagDocs.forEach(d => next.add(d.id))
+      }
+      return next
+    })
+  }
+
   const handleAnalyze = async () => {
     setExtractionLoading(true)
     try {
@@ -243,6 +257,8 @@ export default function DocumentManager() {
           onSelectTag={setActiveTag}
           onCreateTag={handleCreateTag}
           onDeleteTag={handleDeleteTag}
+          checkedIds={checkedIds}
+          onCheckTag={handleCheckTag}
         />
 
         <div className="document-list-panel" data-testid="document-list-panel">
