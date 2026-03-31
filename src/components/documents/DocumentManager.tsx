@@ -4,6 +4,7 @@ import { DocumentToolbar } from './DocumentToolbar'
 import { DropZone } from './DropZone'
 import { DocumentList } from './DocumentList'
 import { DocumentPreview } from './DocumentPreview'
+import ExtractionResultsPanel from './ExtractionResultsPanel'
 import {
   fetchDocuments,
   fetchDocument,
@@ -12,9 +13,13 @@ import {
   deleteDocument,
   syncDocuments,
 } from '../../api/documents'
-import { analyzeDocuments } from '../../api/extraction'
+import { analyzeDocuments, acceptSuggestions } from '../../api/extraction'
+import type { ExtractionResult, SelectionState } from '../../api/extraction'
+import { fetchProfile } from '../../api/profile'
 import { fetchTags, createTag, deleteTag } from '../../api/tags'
 import type { DocumentMeta } from '../../api/documents'
+
+const CATEGORIES = ['skills', 'technologies', 'experience_keywords', 'soft_skills'] as const
 
 export default function DocumentManager() {
   const [documents, setDocuments] = useState<DocumentMeta[]>([])
@@ -26,6 +31,13 @@ export default function DocumentManager() {
   const [selectedDoc, setSelectedDoc] = useState<DocumentMeta | null>(null)
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(true)
+
+  // Extraction state
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+  const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null)
+  const [extractionSelection, setExtractionSelection] = useState<SelectionState>({})
+  const [extractionLoading, setExtractionLoading] = useState(false)
+  const [profileSkills, setProfileSkills] = useState<string[]>([])
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -61,23 +73,90 @@ export default function DocumentManager() {
     fetchDocument(selectedId).then(setSelectedDoc).catch(() => setSelectedDoc(null))
   }, [selectedId])
 
+  const handleSelectDoc = (id: string) => {
+    setSelectedId(id)
+    setExtractionResult(null)
+  }
+
+  const handleCheck = (id: string) => {
+    setCheckedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleAnalyze = async () => {
+    setExtractionLoading(true)
+    try {
+      let skills: string[] = []
+      try {
+        const profile = await fetchProfile()
+        skills = profile.skills ?? []
+      } catch { /* proceed without existing skills */ }
+
+      const data = await analyzeDocuments([...checkedIds])
+      setProfileSkills(skills)
+      setExtractionResult(data)
+
+      const sel: SelectionState = {}
+      for (const key of CATEGORIES) {
+        sel[key] = {}
+        for (const item of data[key]) {
+          if (!skills.includes(item)) {
+            sel[key][item] = true
+          }
+        }
+      }
+      setExtractionSelection(sel)
+    } catch {
+      setStatus('Analysis failed.')
+    } finally {
+      setExtractionLoading(false)
+    }
+  }
+
+  const handleToggle = (category: string, item: string) => {
+    setExtractionSelection(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [item]: !prev[category]?.[item],
+      },
+    }))
+  }
+
+  const handleAccept = async () => {
+    if (!extractionResult) return
+    const filtered: ExtractionResult = {
+      skills: [],
+      technologies: [],
+      experience_keywords: [],
+      soft_skills: [],
+    }
+    for (const key of CATEGORIES) {
+      filtered[key] = extractionResult[key].filter(
+        item => !profileSkills.includes(item) && extractionSelection[key]?.[item]
+      )
+    }
+    await acceptSuggestions(filtered)
+    setExtractionResult(null)
+  }
+
+  const handleDismiss = () => {
+    setExtractionResult(null)
+  }
+
   const handleUpload = async (files: File[]) => {
     if (!files.length) return
     try {
       setStatus('Uploading...')
       await uploadDocuments(files, activeTag ? [activeTag] : undefined)
-      setStatus('Upload complete. Analyzing documents...')
+      setStatus('Upload complete.')
       await loadDocuments()
       await loadAllDocuments()
       await loadTags()
-      analyzeDocuments()
-        .then(result => {
-          localStorage.setItem('extraction_result', JSON.stringify(result))
-          setStatus('Upload complete. Document analysis ready — check your Profile.')
-        })
-        .catch(() => {
-          setStatus('Upload complete. Document analysis failed.')
-        })
     } catch {
       setStatus('Upload failed.')
     }
@@ -137,6 +216,7 @@ export default function DocumentManager() {
       setDocuments(prev => prev.filter(d => d.id !== id))
       setAllDocuments(prev => prev.filter(d => d.id !== id))
       if (selectedId === id) { setSelectedId(null); setSelectedDoc(null) }
+      setCheckedIds(prev => { const next = new Set(prev); next.delete(id); return next })
       await loadTags()
     } catch {
       setStatus('Failed to delete document.')
@@ -171,22 +251,39 @@ export default function DocumentManager() {
             onSearchChange={setSearch}
             onUpload={handleUpload}
             onSync={handleSync}
+            checkedCount={checkedIds.size}
+            onAnalyze={handleAnalyze}
+            extractionLoading={extractionLoading}
           />
           <DropZone onDrop={handleDrop} />
           {status && <div className="status-bar">{status}</div>}
           <DocumentList
             documents={documents}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            checkedIds={checkedIds}
+            onSelect={handleSelectDoc}
+            onCheck={handleCheck}
           />
         </div>
 
-        <DocumentPreview
-          document={selectedDoc}
-          allTags={tags}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-        />
+        {extractionResult ? (
+          <ExtractionResultsPanel
+            result={extractionResult}
+            selection={extractionSelection}
+            existingSkills={profileSkills}
+            onToggle={handleToggle}
+            onAccept={handleAccept}
+            onReanalyze={handleAnalyze}
+            onDismiss={handleDismiss}
+          />
+        ) : (
+          <DocumentPreview
+            document={selectedDoc}
+            allTags={tags}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+          />
+        )}
       </div>
     </div>
   )
