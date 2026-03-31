@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import { TagSidebar } from '../../components/documents/TagSidebar'
@@ -29,8 +29,8 @@ describe('TagSidebar', () => {
 
   it('shows tag counts', () => {
     render(<TagSidebar {...baseProps} />)
-    const resumeItem = screen.getByText('resume').closest('[data-testid]')
-    expect(resumeItem).toBeInTheDocument()
+    expect(screen.getByText('(2)')).toBeInTheDocument() // resume has 2 docs
+    expect(screen.getByText('(1)')).toBeInTheDocument() // cv has 1 doc
   })
 
   it('calls onSelectTag when tag is clicked', async () => {
@@ -56,30 +56,26 @@ describe('TagSidebar', () => {
   it('checkbox is checked when all docs for that tag are in checkedIds', () => {
     // resume tag has docs '1' and '2'
     render(<TagSidebar {...baseProps} checkedIds={new Set(['1', '2'])} />)
-    const checkboxes = screen.getAllByRole('checkbox')
-    expect(checkboxes[0]).toBeChecked() // resume: both docs checked
+    expect(screen.getByRole('checkbox', { name: 'Select all resume documents' })).toBeChecked()
   })
 
   it('checkbox is unchecked when only some docs for that tag are in checkedIds', () => {
     render(<TagSidebar {...baseProps} checkedIds={new Set(['1'])} />)
-    const checkboxes = screen.getAllByRole('checkbox')
-    expect(checkboxes[0]).not.toBeChecked() // resume: only doc '1' checked, not '2'
+    expect(screen.getByRole('checkbox', { name: 'Select all resume documents' })).not.toBeChecked()
   })
 
-  it('calls onCheckTag with tag name when checkbox is clicked', () => {
+  it('calls onCheckTag with tag name when checkbox is clicked', async () => {
     const onCheckTag = vi.fn()
     render(<TagSidebar {...baseProps} onCheckTag={onCheckTag} />)
-    const checkboxes = screen.getAllByRole('checkbox')
-    fireEvent.click(checkboxes[0])
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select all resume documents' }))
     expect(onCheckTag).toHaveBeenCalledWith('resume')
   })
 
-  it('clicking tag checkbox does not call onSelectTag', () => {
+  it('clicking tag checkbox does not call onSelectTag', async () => {
     const onSelectTag = vi.fn()
     const onCheckTag = vi.fn()
     render(<TagSidebar {...baseProps} onSelectTag={onSelectTag} onCheckTag={onCheckTag} />)
-    const checkboxes = screen.getAllByRole('checkbox')
-    fireEvent.click(checkboxes[0])
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select all resume documents' }))
     expect(onSelectTag).not.toHaveBeenCalled()
   })
 })
