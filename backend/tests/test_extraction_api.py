@@ -10,7 +10,6 @@ def mock_extraction():
     return {
         "skills": ["Python", "FastAPI"],
         "technologies": ["Docker", "AWS"],
-        "experience_keywords": ["led team of 5"],
         "soft_skills": ["collaboration"],
     }
 
@@ -98,7 +97,6 @@ async def test_accept_partial_suggestions():
     partial = {
         "skills": ["Rust"],
         "technologies": [],
-        "experience_keywords": [],
         "soft_skills": [],
     }
 
@@ -133,7 +131,7 @@ async def test_analyze_with_specific_document_ids(mock_metadata):
         patch("backend.routers.extraction.get_metadata_service", return_value=mock_meta_svc),
         patch("backend.routers.extraction.read_document_contents", side_effect=capture),
         patch("backend.routers.extraction.extract_from_documents", return_value={
-            "skills": [], "technologies": [], "experience_keywords": [], "soft_skills": []
+            "skills": [], "technologies": [], "soft_skills": []
         }),
     ):
         transport = ASGITransport(app=app)
@@ -163,7 +161,7 @@ async def test_analyze_with_empty_ids_reads_all_docs(mock_metadata):
         patch("backend.routers.extraction.get_metadata_service", return_value=mock_meta_svc),
         patch("backend.routers.extraction.read_document_contents", side_effect=capture),
         patch("backend.routers.extraction.extract_from_documents", return_value={
-            "skills": [], "technologies": [], "experience_keywords": [], "soft_skills": []
+            "skills": [], "technologies": [], "soft_skills": []
         }),
     ):
         transport = ASGITransport(app=app)
@@ -191,7 +189,7 @@ async def test_analyze_with_nonexistent_id_skips_gracefully(mock_metadata):
         patch("backend.routers.extraction.get_metadata_service", return_value=mock_meta_svc),
         patch("backend.routers.extraction.read_document_contents", side_effect=capture),
         patch("backend.routers.extraction.extract_from_documents", return_value={
-            "skills": [], "technologies": [], "experience_keywords": [], "soft_skills": []
+            "skills": [], "technologies": [], "soft_skills": []
         }),
     ):
         transport = ASGITransport(app=app)
@@ -219,7 +217,7 @@ async def test_analyze_with_no_body_reads_all_docs(mock_metadata):
         patch("backend.routers.extraction.get_metadata_service", return_value=mock_meta_svc),
         patch("backend.routers.extraction.read_document_contents", side_effect=capture),
         patch("backend.routers.extraction.extract_from_documents", return_value={
-            "skills": [], "technologies": [], "experience_keywords": [], "soft_skills": []
+            "skills": [], "technologies": [], "soft_skills": []
         }),
     ):
         transport = ASGITransport(app=app)

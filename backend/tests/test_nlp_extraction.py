@@ -8,7 +8,6 @@ from backend.services.nlp_extraction import (
     extract_skills,
     extract_technologies,
     extract_soft_skills,
-    extract_experience_keywords,
     extract_from_documents,
 )
 
@@ -160,48 +159,18 @@ class TestExtractSoftSkills:
         assert result == []
 
 
-class TestExtractExperienceKeywords:
-    def test_finds_achievement_phrase(self):
-        result = extract_experience_keywords(RESUME_TEXT)
-        # Should extract something related to the latency reduction achievement
-        joined = " ".join(result).lower()
-        assert any(
-            keyword in joined
-            for keyword in ["latency", "40%", "200k", "cost", "infrastructure", "led", "team"]
-        )
-
-    def test_returns_list(self):
-        result = extract_experience_keywords(RESUME_TEXT)
-        assert isinstance(result, list)
-
-    def test_returns_short_phrases(self):
-        """Experience keywords should be concise phrases, not full paragraphs."""
-        result = extract_experience_keywords(RESUME_TEXT)
-        for phrase in result:
-            assert len(phrase.split()) <= 10, f"Phrase too long: '{phrase}'"
-
-    def test_empty_text_returns_empty_list(self):
-        result = extract_experience_keywords("")
-        assert result == []
-
-    def test_short_text_does_not_crash(self):
-        result = extract_experience_keywords("Developer")
-        assert isinstance(result, list)
-
 
 class TestExtractFromDocuments:
     def test_returns_correct_structure(self):
         result = extract_from_documents(RESUME_TEXT)
         assert "skills" in result
         assert "technologies" in result
-        assert "experience_keywords" in result
         assert "soft_skills" in result
 
     def test_all_values_are_lists(self):
         result = extract_from_documents(RESUME_TEXT)
         assert isinstance(result["skills"], list)
         assert isinstance(result["technologies"], list)
-        assert isinstance(result["experience_keywords"], list)
         assert isinstance(result["soft_skills"], list)
 
     def test_returns_empty_result_for_no_documents_sentinel(self):
@@ -209,7 +178,6 @@ class TestExtractFromDocuments:
         assert result == {
             "skills": [],
             "technologies": [],
-            "experience_keywords": [],
             "soft_skills": [],
         }
 

@@ -1,7 +1,6 @@
 export interface ExtractionResult {
   skills: string[]
   technologies: string[]
-  experience_keywords: string[]
   soft_skills: string[]
 }
 

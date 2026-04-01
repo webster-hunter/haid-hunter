@@ -36,7 +36,6 @@ class AnalyzeRequest(BaseModel):
 class AcceptSuggestionsRequest(BaseModel):
     skills: list[str] = []
     technologies: list[str] = []
-    experience_keywords: list[str] = []
     soft_skills: list[str] = []
 
 

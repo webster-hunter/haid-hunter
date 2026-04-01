@@ -19,7 +19,7 @@ import { fetchProfile, patchSection } from '../../api/profile'
 import { fetchTags, createTag, deleteTag } from '../../api/tags'
 import type { DocumentMeta } from '../../api/documents'
 
-const CATEGORIES = ['skills', 'technologies', 'experience_keywords', 'soft_skills'] as const
+const CATEGORIES = ['skills', 'technologies', 'soft_skills'] as const
 
 export default function DocumentManager() {
   const [documents, setDocuments] = useState<DocumentMeta[]>([])

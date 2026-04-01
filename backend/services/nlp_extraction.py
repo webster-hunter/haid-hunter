@@ -4,7 +4,6 @@ Replaces Claude API calls for document analysis using offline keyword matching
 and lightweight text processing — zero API cost, zero network dependency.
 """
 
-import re
 import logging
 
 logger = logging.getLogger(__name__)
@@ -797,26 +796,9 @@ SOFT_SKILLS_LIST = {
     "facilitation", "coordination",
 }
 
-# Phrases/patterns that signal measurable accomplishments
-_METRIC_PATTERN = re.compile(
-    r"(?:"
-    r"\d+\s*%|"                          # percentages: 40%, 99.9%
-    r"\$\s*[\d,]+(?:\s*[KMB])?|"         # dollar amounts: $200K, $1.2M
-    r"\d+\s*[KMB]\b|"                    # magnitudes: 5K, 2M
-    r"\d+x\b|"                           # multipliers: 3x, 10x
-    r"(?:reduced|improved|increased|decreased|optimized|scaled|cut|saved|"
-    r"grew|delivered|launched|built|designed|led|managed|mentored|shipped|"
-    r"automated|migrated|refactored|deployed|architected|established|"
-    r"spearheaded|pioneered|streamlined|accelerated|transformed|"
-    r"implemented|developed|created|drove|enabled|supported)\b"
-    r")",
-    re.IGNORECASE,
-)
-
 EMPTY_RESULT = {
     "skills": [],
     "technologies": [],
-    "experience_keywords": [],
     "soft_skills": [],
 }
 
@@ -908,39 +890,9 @@ def extract_soft_skills(text: str) -> list[str]:
     return _run_matcher(text, _get_soft_matcher(), _soft_lower)
 
 
-def extract_experience_keywords(text: str) -> list[str]:
-    """
-    Extract short achievement phrases using SpaCy sentence segmentation.
-    Finds sentences containing metrics or action verbs and returns phrases ≤ 10 words.
-    """
-    if not text or not text.strip():
-        return []
-
-    nlp = _get_nlp()
-    doc = nlp(text)
-
-    phrases: list[str] = []
-    for sent in doc.sents:
-        sent_text = sent.text.strip()
-        if not sent_text or len(sent_text.split()) < 3:
-            continue
-        if _METRIC_PATTERN.search(sent_text):
-            words = sent_text.split()
-            phrases.append(" ".join(words[:10]))
-
-    seen: set[str] = set()
-    result: list[str] = []
-    for p in phrases:
-        key = p.lower()
-        if key not in seen:
-            seen.add(key)
-            result.append(p)
-    return result
-
-
 def extract_from_documents(doc_contents: str) -> dict:
     """
-    Main entry point. Returns {"skills", "technologies", "experience_keywords", "soft_skills"}.
+    Main entry point. Returns {"skills", "technologies", "soft_skills"}.
     Works completely offline via spaCy — no API calls made.
     """
     if doc_contents == "No previewable documents found.":
@@ -949,6 +901,5 @@ def extract_from_documents(doc_contents: str) -> dict:
     return {
         "skills": extract_skills(doc_contents),
         "technologies": extract_technologies(doc_contents),
-        "experience_keywords": extract_experience_keywords(doc_contents),
         "soft_skills": extract_soft_skills(doc_contents),
     }

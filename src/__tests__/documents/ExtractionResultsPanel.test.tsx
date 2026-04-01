@@ -6,14 +6,12 @@ import type { ExtractionResult, SelectionState } from '../../api/extraction'
 const fullResult: ExtractionResult = {
   skills: ['Python', 'React'],
   technologies: ['Docker'],
-  experience_keywords: ['led team of 5'],
   soft_skills: ['communication'],
 }
 
 const allSelected: SelectionState = {
   skills: { Python: true, React: true },
   technologies: { Docker: true },
-  experience_keywords: { 'led team of 5': true },
   soft_skills: { communication: true },
 }
 
@@ -36,7 +34,6 @@ describe('ExtractionResultsPanel', () => {
     expect(screen.getByText('Python')).toBeInTheDocument()
     expect(screen.getByText('React')).toBeInTheDocument()
     expect(screen.getByText('Docker')).toBeInTheDocument()
-    expect(screen.getByText('led team of 5')).toBeInTheDocument()
     expect(screen.getByText('communication')).toBeInTheDocument()
   })
 
@@ -51,8 +48,7 @@ describe('ExtractionResultsPanel', () => {
     const selection: SelectionState = {
       skills: { Python: false, React: true },
       technologies: { Docker: true },
-      experience_keywords: { 'led team of 5': true },
-      soft_skills: { communication: true },
+            soft_skills: { communication: true },
     }
     render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
     expect(screen.getByText('Python')).toHaveClass('deselected')
@@ -81,7 +77,7 @@ describe('ExtractionResultsPanel', () => {
   })
 
   it('shows No suggestions found when result is empty', () => {
-    const empty: ExtractionResult = { skills: [], technologies: [], experience_keywords: [], soft_skills: [] }
+    const empty: ExtractionResult = { skills: [], technologies: [], soft_skills: [] }
     render(<ExtractionResultsPanel {...baseProps} result={empty} selection={{}} />)
     expect(screen.getByText('No suggestions found.')).toBeInTheDocument()
   })
@@ -90,8 +86,7 @@ describe('ExtractionResultsPanel', () => {
     const selection: SelectionState = {
       skills: { Python: true, React: false },
       technologies: { Docker: true },
-      experience_keywords: { 'led team of 5': true },
-      soft_skills: { communication: true },
+            soft_skills: { communication: true },
     }
     render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
     expect(screen.getByText('Python')).not.toHaveClass('deselected')
@@ -108,8 +103,7 @@ describe('ExtractionResultsPanel', () => {
     const selection: SelectionState = {
       skills: { Python: false, React: true },
       technologies: { Docker: true },
-      experience_keywords: { 'led team of 5': true },
-      soft_skills: { communication: true },
+            soft_skills: { communication: true },
     }
     render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
     expect(screen.getByText('Python')).toHaveClass('deselected')

@@ -6,7 +6,6 @@ const emptyProfile = { summary: '', skills: [], experience: [], activities: [], 
 const extractionResult = {
   skills: ['Python'],
   technologies: ['Docker'],
-  experience_keywords: [],
   soft_skills: [],
 }
 

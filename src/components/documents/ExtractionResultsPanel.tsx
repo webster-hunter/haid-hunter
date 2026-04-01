@@ -3,7 +3,6 @@ import type { ExtractionResult, SelectionState } from '../../api/extraction'
 const CATEGORIES: { key: keyof ExtractionResult; label: string }[] = [
   { key: 'skills', label: 'Skills' },
   { key: 'technologies', label: 'Technologies' },
-  { key: 'experience_keywords', label: 'Experience Keywords' },
   { key: 'soft_skills', label: 'Soft Skills' },
 ]
 

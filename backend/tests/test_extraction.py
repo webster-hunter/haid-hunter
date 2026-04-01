@@ -11,7 +11,6 @@ class TestExtractFromDocuments:
         assert "FastAPI" in result["skills"]
         assert "PostgreSQL" in result["technologies"]
         assert "Docker" in result["technologies"]
-        assert isinstance(result["experience_keywords"], list)
         assert isinstance(result["soft_skills"], list)
 
     def test_returns_empty_on_no_documents(self):
@@ -19,7 +18,6 @@ class TestExtractFromDocuments:
         assert result == {
             "skills": [],
             "technologies": [],
-            "experience_keywords": [],
             "soft_skills": [],
         }
 
@@ -27,7 +25,6 @@ class TestExtractFromDocuments:
         result = extract_from_documents("Some document text without any recognizable keywords")
         assert "skills" in result
         assert "technologies" in result
-        assert "experience_keywords" in result
         assert "soft_skills" in result
         assert isinstance(result["skills"], list)
 
@@ -45,7 +42,6 @@ class TestMergeSuggestions:
         suggestions = {
             "skills": ["Python", "FastAPI", "React"],
             "technologies": ["Docker"],
-            "experience_keywords": ["led team of 5"],
             "soft_skills": ["collaboration"],
         }
         result = merge_suggestions(existing_profile, suggestions)
@@ -67,7 +63,7 @@ class TestMergeSuggestions:
             "summary": "Experienced dev",
             "objectives": "Lead role",
         }
-        suggestions = {"skills": ["Rust"], "technologies": [], "experience_keywords": [], "soft_skills": []}
+        suggestions = {"skills": ["Rust"], "technologies": [], "soft_skills": []}
         result = merge_suggestions(existing_profile, suggestions)
         assert result["experience"] == [{"company": "Acme", "role": "Dev"}]
         assert result["summary"] == "Experienced dev"
@@ -76,6 +72,6 @@ class TestMergeSuggestions:
 
     def test_handles_empty_suggestions(self):
         existing = {"skills": ["Python"], "experience": [], "education": [], "certifications": [], "summary": "", "objectives": ""}
-        suggestions = {"skills": [], "technologies": [], "experience_keywords": [], "soft_skills": []}
+        suggestions = {"skills": [], "technologies": [], "soft_skills": []}
         result = merge_suggestions(existing, suggestions)
         assert result["skills"] == ["Python"]
