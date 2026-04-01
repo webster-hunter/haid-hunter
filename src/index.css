@@ -342,7 +342,7 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 .profile-panel-inner { display: flex; flex-direction: column; gap: var(--space-md); }
 
 /* Extraction panel */
-.extraction-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-md); }
+.extraction-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-md); overflow-y: auto; min-height: 0; }
 .extraction-category { margin-top: var(--space-sm); }
 .extraction-category h4 { font-size: 13px; font-weight: 600; color: var(--color-secondary); margin: 0 0 var(--space-xs); }
 .extraction-chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
