@@ -821,27 +821,67 @@ EMPTY_RESULT = {
 }
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# ── SpaCy pipeline ────────────────────────────────────────────────────────────
 
-def _tokenize(text: str) -> list[str]:
-    """Split text into whitespace-separated tokens, stripping punctuation."""
-    return re.findall(r"[A-Za-z][\w\.\+\#\-\/]*", text)
+import spacy
+from spacy.matcher import PhraseMatcher
+
+_nlp = None
+_skills_matcher: PhraseMatcher | None = None
+_tech_matcher: PhraseMatcher | None = None
+_soft_matcher: PhraseMatcher | None = None
+
+# Maps canonical-lowercase → canonical-cased term for all three lists
+_skills_lower: dict[str, str] = {t.lower(): t for t in SKILLS_LIST}
+_tech_lower: dict[str, str] = {t.lower(): t for t in TECHNOLOGIES_LIST}
+_soft_lower: dict[str, str] = {t.lower(): t for t in SOFT_SKILLS_LIST}
 
 
-def _match_against_list(text: str, word_list: set[str]) -> list[str]:
-    """
-    Case-insensitive phrase matching against a list.
-    Returns matched terms using the canonical casing from the list.
-    """
+def _get_nlp():
+    global _nlp
+    if _nlp is None:
+        _nlp = spacy.load("en_core_web_sm", disable=["ner"])
+    return _nlp
+
+
+def _build_matcher(word_list: set[str], label: str) -> PhraseMatcher:
+    nlp = _get_nlp()
+    matcher = PhraseMatcher(nlp.vocab, attr="LOWER")
+    patterns = [nlp.make_doc(term.lower()) for term in word_list]
+    matcher.add(label, patterns)
+    return matcher
+
+
+def _get_skills_matcher() -> PhraseMatcher:
+    global _skills_matcher
+    if _skills_matcher is None:
+        _skills_matcher = _build_matcher(SKILLS_LIST, "SKILL")
+    return _skills_matcher
+
+
+def _get_tech_matcher() -> PhraseMatcher:
+    global _tech_matcher
+    if _tech_matcher is None:
+        _tech_matcher = _build_matcher(TECHNOLOGIES_LIST, "TECH")
+    return _tech_matcher
+
+
+def _get_soft_matcher() -> PhraseMatcher:
+    global _soft_matcher
+    if _soft_matcher is None:
+        _soft_matcher = _build_matcher(SOFT_SKILLS_LIST, "SOFT")
+    return _soft_matcher
+
+
+def _run_matcher(text: str, matcher: PhraseMatcher, lower_map: dict[str, str]) -> list[str]:
+    nlp = _get_nlp()
+    doc = nlp(text)
     found: set[str] = set()
-    lower_text = text.lower()
-
-    for term in word_list:
-        # Use word-boundary matching to avoid partial matches (e.g. "C" in "CI/CD")
-        pattern = r"(?<![A-Za-z0-9])" + re.escape(term.lower()) + r"(?![A-Za-z0-9])"
-        if re.search(pattern, lower_text):
-            found.add(term)
-
+    for _match_id, start, end in matcher(doc):
+        span_lower = doc[start:end].text.lower()
+        canonical = lower_map.get(span_lower)
+        if canonical:
+            found.add(canonical)
     return sorted(found)
 
 
@@ -851,47 +891,43 @@ def extract_skills(text: str) -> list[str]:
     """Return programming languages, frameworks, and dev tools found in text."""
     if not text or not text.strip():
         return []
-    return _match_against_list(text, SKILLS_LIST)
+    return _run_matcher(text, _get_skills_matcher(), _skills_lower)
 
 
 def extract_technologies(text: str) -> list[str]:
     """Return infrastructure, platforms, databases, and cloud services found in text."""
     if not text or not text.strip():
         return []
-    return _match_against_list(text, TECHNOLOGIES_LIST)
+    return _run_matcher(text, _get_tech_matcher(), _tech_lower)
 
 
 def extract_soft_skills(text: str) -> list[str]:
     """Return soft skills found in text."""
     if not text or not text.strip():
         return []
-    return _match_against_list(text, SOFT_SKILLS_LIST)
+    return _run_matcher(text, _get_soft_matcher(), _soft_lower)
 
 
 def extract_experience_keywords(text: str) -> list[str]:
     """
-    Extract short achievement/accomplishment phrases from text.
-    Looks for sentences containing metrics or action verbs and returns
-    condensed noun-phrase-like fragments (≤ 10 words).
+    Extract short achievement phrases using SpaCy sentence segmentation.
+    Finds sentences containing metrics or action verbs and returns phrases ≤ 10 words.
     """
     if not text or not text.strip():
         return []
 
+    nlp = _get_nlp()
+    doc = nlp(text)
+
     phrases: list[str] = []
-    # Split into sentences on period, newline, or semicolon
-    sentences = re.split(r"[.\n;]+", text)
-
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence or len(sentence.split()) < 3:
+    for sent in doc.sents:
+        sent_text = sent.text.strip()
+        if not sent_text or len(sent_text.split()) < 3:
             continue
-        if _METRIC_PATTERN.search(sentence):
-            # Trim to ≤ 10 words
-            words = sentence.split()
-            phrase = " ".join(words[:10])
-            phrases.append(phrase)
+        if _METRIC_PATTERN.search(sent_text):
+            words = sent_text.split()
+            phrases.append(" ".join(words[:10]))
 
-    # Deduplicate while preserving order
     seen: set[str] = set()
     result: list[str] = []
     for p in phrases:
@@ -899,15 +935,13 @@ def extract_experience_keywords(text: str) -> list[str]:
         if key not in seen:
             seen.add(key)
             result.append(p)
-
     return result
 
 
 def extract_from_documents(doc_contents: str) -> dict:
     """
-    Main entry point — same interface as the Claude-based extraction.
-    Returns {"skills", "technologies", "experience_keywords", "soft_skills"}.
-    Works completely offline; no API calls made.
+    Main entry point. Returns {"skills", "technologies", "experience_keywords", "soft_skills"}.
+    Works completely offline via spaCy — no API calls made.
     """
     if doc_contents == "No previewable documents found.":
         return dict(EMPTY_RESULT)
