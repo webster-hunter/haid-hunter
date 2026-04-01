@@ -20,7 +20,6 @@ const allSelected: SelectionState = {
 const baseProps = {
   result: fullResult,
   selection: allSelected,
-  existingSkills: [],
   onToggle: vi.fn(),
   onAccept: vi.fn(),
   onReanalyze: vi.fn(),
@@ -87,39 +86,33 @@ describe('ExtractionResultsPanel', () => {
     expect(screen.getByText('No suggestions found.')).toBeInTheDocument()
   })
 
-  it('shows all-in-profile message when every item is already in profile', () => {
-    const existingSkills = ['Python', 'React', 'Docker', 'led team of 5', 'communication']
-    render(<ExtractionResultsPanel {...baseProps} existingSkills={existingSkills} />)
-    expect(screen.getByText('All suggestions already in your profile.')).toBeInTheDocument()
+  it('profile items passed as selected=true start without deselected class', () => {
+    const selection: SelectionState = {
+      skills: { Python: true, React: false },
+      technologies: { Docker: true },
+      experience_keywords: { 'led team of 5': true },
+      soft_skills: { communication: true },
+    }
+    render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
+    expect(screen.getByText('Python')).not.toHaveClass('deselected')
   })
 
-  it('renders already-in-profile chips with already-in-profile class and no click handler effect', () => {
+  it('profile items (selected=true) are clickable and call onToggle', () => {
     const onToggle = vi.fn()
-    render(
-      <ExtractionResultsPanel
-        {...baseProps}
-        existingSkills={['Python']}
-        onToggle={onToggle}
-      />
-    )
-    const pythonChip = screen.getByText('Python')
-    expect(pythonChip).toHaveClass('already-in-profile')
-    fireEvent.click(pythonChip)
-    expect(onToggle).not.toHaveBeenCalled()
+    render(<ExtractionResultsPanel {...baseProps} onToggle={onToggle} />)
+    fireEvent.click(screen.getByText('Python'))
+    expect(onToggle).toHaveBeenCalledWith('skills', 'Python')
   })
 
-  it('does not include already-in-profile chips in Accept payload', () => {
-    const onToggle = vi.fn()
-    render(
-      <ExtractionResultsPanel
-        {...baseProps}
-        existingSkills={['Python']}
-        onToggle={onToggle}
-      />
-    )
-    const pythonChip = screen.getByText('Python')
-    fireEvent.click(pythonChip)
-    expect(onToggle).not.toHaveBeenCalled()
-    expect(pythonChip).not.toHaveClass('deselected')
+  it('deselecting a previously-selected item applies deselected class', () => {
+    const selection: SelectionState = {
+      skills: { Python: false, React: true },
+      technologies: { Docker: true },
+      experience_keywords: { 'led team of 5': true },
+      soft_skills: { communication: true },
+    }
+    render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
+    expect(screen.getByText('Python')).toHaveClass('deselected')
+    expect(screen.getByText('React')).not.toHaveClass('deselected')
   })
 })

@@ -349,8 +349,6 @@ h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
 .extraction-chip { display: inline-flex; align-items: center; background: rgba(123, 147, 212, 0.15); border: 1px solid var(--color-secondary); border-radius: var(--radius-full); padding: 4px 10px; font-size: 13px; color: var(--color-text); cursor: pointer; transition: opacity 0.15s, background 0.15s; }
 .extraction-chip:hover { background: rgba(123, 147, 212, 0.25); }
 .extraction-chip.deselected { opacity: 0.4; background: var(--color-elevated); border-color: var(--color-border); }
-.extraction-chip.already-in-profile { opacity: 0.5; background: var(--color-elevated); border-color: var(--color-border); cursor: default; }
-.extraction-chip.already-in-profile::after { content: ' ✓'; font-size: 11px; }
 .extraction-actions { display: flex; gap: var(--space-sm); margin-top: var(--space-md); }
 
 

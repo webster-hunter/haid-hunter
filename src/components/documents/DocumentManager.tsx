@@ -13,9 +13,9 @@ import {
   deleteDocument,
   syncDocuments,
 } from '../../api/documents'
-import { analyzeDocuments, acceptSuggestions } from '../../api/extraction'
+import { analyzeDocuments } from '../../api/extraction'
 import type { ExtractionResult, SelectionState } from '../../api/extraction'
-import { fetchProfile } from '../../api/profile'
+import { fetchProfile, patchSection } from '../../api/profile'
 import { fetchTags, createTag, deleteTag } from '../../api/tags'
 import type { DocumentMeta } from '../../api/documents'
 
@@ -118,9 +118,7 @@ export default function DocumentManager() {
       for (const key of CATEGORIES) {
         sel[key] = {}
         for (const item of data[key]) {
-          if (!skills.includes(item)) {
-            sel[key][item] = false
-          }
+          sel[key][item] = skills.includes(item)
         }
       }
       setExtractionSelection(sel)
@@ -143,18 +141,17 @@ export default function DocumentManager() {
 
   const handleAccept = async () => {
     if (!extractionResult) return
-    const filtered: ExtractionResult = {
-      skills: [],
-      technologies: [],
-      experience_keywords: [],
-      soft_skills: [],
-    }
+    const updatedSkills = new Set(profileSkills)
     for (const key of CATEGORIES) {
-      filtered[key] = extractionResult[key].filter(
-        item => !profileSkills.includes(item) && extractionSelection[key]?.[item]
-      )
+      for (const item of extractionResult[key]) {
+        if (extractionSelection[key]?.[item]) {
+          updatedSkills.add(item)
+        } else {
+          updatedSkills.delete(item)
+        }
+      }
     }
-    await acceptSuggestions(filtered)
+    await patchSection('skills', [...updatedSkills])
     setExtractionResult(null)
   }
 
@@ -286,7 +283,6 @@ export default function DocumentManager() {
           <ExtractionResultsPanel
             result={extractionResult}
             selection={extractionSelection}
-            existingSkills={profileSkills}
             onToggle={handleToggle}
             onAccept={handleAccept}
             onReanalyze={handleAnalyze}
