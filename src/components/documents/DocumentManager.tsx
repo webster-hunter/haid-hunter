@@ -119,7 +119,7 @@ export default function DocumentManager() {
         sel[key] = {}
         for (const item of data[key]) {
           if (!skills.includes(item)) {
-            sel[key][item] = true
+            sel[key][item] = false
           }
         }
       }
