@@ -12,10 +12,12 @@ hAId-hunter runs entirely on your local machine. It provides three core features
   banner, document and application statistics, referral contacts, and a
   user-defined task system with recurring and one-time tasks.
 - **Document Manager**: Upload and tag resumes, cover letters, and supporting
-  documents. Preview files in-browser and organize them with custom tags.
+  documents. Preview files in-browser and organize them with custom tags. Select
+  documents individually or by tag, then run offline NLP extraction to surface
+  skills, technologies, experience keywords, and soft skills — with one-click
+  "Analyze All" or targeted "Analyze Selected".
 - **Profile View**: Build a structured candidate profile covering skills,
-  experience, education, and certifications. An optional Claude-powered interview
-  chat helps you refine your profile through guided questions.
+  experience, education, and certifications.
 - **Application Manager**: Track job applications with company details, posting
   URLs, portal credentials (encrypted at rest), status tracking, and linked
   documents. View applications in a sortable table or Kanban board.
@@ -24,8 +26,6 @@ hAId-hunter runs entirely on your local machine. It provides three core features
 
 - [Node.js](https://nodejs.org/) (v18 or later)
 - [Python](https://www.python.org/) (3.12 or later)
-- An [Anthropic API key](https://console.anthropic.com/) (optional, required only
-  for the interview chat feature)
 
 ## Set up
 
@@ -52,7 +52,6 @@ hAId-hunter runs entirely on your local machine. It provides three core features
 
    ```text
    ENCRYPTION_KEY=your-fernet-key-here
-   ANTHROPIC_API_KEY=your-anthropic-api-key-here
    ```
 
    Generate a Fernet encryption key with Python:
@@ -62,8 +61,6 @@ hAId-hunter runs entirely on your local machine. It provides three core features
    ```
 
    The `ENCRYPTION_KEY` is required for encrypting application portal credentials.
-   The `ANTHROPIC_API_KEY` is optional and only needed for the interview chat
-   feature in Profile View.
 
 ## Run the application
 
@@ -94,16 +91,17 @@ haid-hunter/
 │   │   ├── applications.py  # Application CRUD and document linking
 │   │   ├── dashboard.py     # Aggregated dashboard endpoint
 │   │   ├── documents.py     # Document upload, preview, and management
-│   │   ├── interview.py     # Claude-powered interview chat
+│   │   ├── extraction.py    # NLP extraction and profile merge endpoints
 │   │   ├── profile.py       # Candidate profile endpoints
 │   │   ├── settings.py      # User settings (key-value)
 │   │   ├── tags.py          # Tag management
 │   │   └── tasks.py         # User-defined task CRUD
 │   ├── services/            # Business logic
 │   │   ├── database.py      # SQLite connection and schema
+│   │   ├── document_reader.py # Text and layout-aware PDF extraction
 │   │   ├── encryption.py    # Fernet encryption for credentials
-│   │   ├── interview.py     # Interview session management
 │   │   ├── metadata.py      # Document metadata tracking
+│   │   ├── nlp_extraction.py # Offline NLP keyword extraction (1600+ terms)
 │   │   └── profile.py       # Profile read/write operations
 │   ├── tests/               # Backend test suite (pytest)
 │   ├── config.py            # Configuration and environment variables
@@ -134,13 +132,13 @@ pytest
 
 ## Tech stack
 
-| Layer    | Technology                    |
-| -------- | ----------------------------- |
-| Frontend | React 19, TypeScript, Vite 8  |
-| Backend  | FastAPI, Uvicorn              |
-| Database | SQLite                        |
-| Testing  | Vitest, pytest                |
-| AI       | Anthropic Claude API          |
+| Layer      | Technology                              |
+| ---------- | --------------------------------------- |
+| Frontend   | React 19, TypeScript, Vite 8            |
+| Backend    | FastAPI, Uvicorn                        |
+| Database   | SQLite                                  |
+| Testing    | Vitest, pytest                          |
+| Extraction | Offline NLP (regex keyword matching, 1600+ terms, pdfplumber) |
 
 ## Data storage
 
@@ -152,8 +150,6 @@ All data stays on your local machine:
 - **Applications, tasks, and settings**: Stored in a SQLite database at
   `data/applications.db`. Portal credentials are encrypted with Fernet symmetric
   encryption.
-- **Interview sessions**: Held in memory only. Sessions are lost when the backend
-  restarts.
 
 ## Supported file types
 
@@ -175,10 +171,8 @@ PDF, DOCX, TXT, Markdown, XLSX, CSV, PPTX. Maximum upload size is 50 MB.
 | GET    | `/api/profile`                        | Get candidate profile          |
 | PUT    | `/api/profile`                        | Replace entire profile         |
 | PATCH  | `/api/profile/{section}`              | Update a profile section       |
-| POST   | `/api/interview/start`                | Start interview session        |
-| POST   | `/api/interview/message`              | Send interview message         |
-| POST   | `/api/interview/accept`               | Accept a suggestion            |
-| POST   | `/api/interview/reject`               | Reject a suggestion            |
+| POST   | `/api/extraction/analyze`             | Extract skills from documents  |
+| POST   | `/api/extraction/accept`              | Merge extracted skills into profile |
 | GET    | `/api/applications`                   | List applications              |
 | POST   | `/api/applications`                   | Create an application          |
 | PUT    | `/api/applications/{id}`              | Update an application          |
