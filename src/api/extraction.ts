@@ -1,10 +1,13 @@
-export interface ExtractionResult {
-  skills: string[]
-  technologies: string[]
-  soft_skills: string[]
+export interface TypedSkill {
+  name: string
+  type: string
 }
 
-export type SelectionState = Record<string, Record<string, boolean>>
+export interface ExtractionResult {
+  skills: TypedSkill[]
+}
+
+export type SelectionState = Record<string, boolean>
 
 export async function analyzeDocuments(documentIds: string[] = []): Promise<ExtractionResult> {
   const res = await fetch('/api/extraction/analyze', {
