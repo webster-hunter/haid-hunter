@@ -1,15 +1,9 @@
 """
-TDD tests for NLP-based extraction service.
-These tests define the desired behavior BEFORE implementation.
+Tests for NLP-based extraction service with typed skill output.
 """
 
 import pytest
-from backend.services.nlp_extraction import (
-    extract_skills,
-    extract_technologies,
-    extract_soft_skills,
-    extract_from_documents,
-)
+from backend.services.nlp_extraction import extract_skills, extract_from_documents
 
 RESUME_TEXT = """
 Senior Software Engineer with 8 years of experience building scalable web applications.
@@ -41,173 +35,92 @@ Requirements:
 
 
 class TestExtractSkills:
-    def test_finds_python_in_resume(self):
-        result = extract_skills(RESUME_TEXT)
-        assert "Python" in result
-
-    def test_finds_react_in_resume(self):
-        result = extract_skills(RESUME_TEXT)
-        assert "React" in result
-
-    def test_finds_fastapi_in_resume(self):
-        result = extract_skills(RESUME_TEXT)
-        assert "FastAPI" in result
-
-    def test_finds_typescript_in_resume(self):
-        result = extract_skills(RESUME_TEXT)
-        assert "TypeScript" in result
-
-    def test_finds_python_in_job_posting(self):
-        result = extract_skills(JOB_POSTING_TEXT)
-        assert "Python" in result
-
-    def test_finds_django_in_job_posting(self):
-        result = extract_skills(JOB_POSTING_TEXT)
-        assert "Django" in result
-
-    def test_returns_list(self):
+    def test_returns_list_of_typed_objects(self):
         result = extract_skills(RESUME_TEXT)
         assert isinstance(result, list)
+        for item in result:
+            assert "name" in item
+            assert "type" in item
+
+    def test_finds_python_with_correct_type(self):
+        result = extract_skills(RESUME_TEXT)
+        names = [s["name"] for s in result]
+        assert "Python" in names
+        python_entry = next(s for s in result if s["name"] == "Python")
+        assert python_entry["type"] == "Programming Languages"
+
+    def test_finds_react_with_correct_type(self):
+        result = extract_skills(RESUME_TEXT)
+        names = [s["name"] for s in result]
+        assert "React" in names
+        react_entry = next(s for s in result if s["name"] == "React")
+        assert react_entry["type"] == "Frontend"
+
+    def test_finds_docker_with_correct_type(self):
+        result = extract_skills(RESUME_TEXT)
+        names = [s["name"] for s in result]
+        assert "Docker" in names
+        docker_entry = next(s for s in result if s["name"] == "Docker")
+        assert docker_entry["type"] == "DevOps & Infrastructure"
+
+    def test_finds_communication(self):
+        result = extract_skills(RESUME_TEXT)
+        names = [s["name"].lower() for s in result]
+        assert "communication" in names
+
+    def test_finds_postgresql(self):
+        result = extract_skills(RESUME_TEXT)
+        names = [s["name"] for s in result]
+        assert "PostgreSQL" in names
 
     def test_no_duplicates(self):
         text = "Python Python Python developer with Python experience"
         result = extract_skills(text)
-        assert result.count("Python") == 1
+        names = [s["name"] for s in result]
+        assert names.count("Python") == 1
 
     def test_empty_text_returns_empty_list(self):
         result = extract_skills("")
         assert result == []
 
-    def test_does_not_include_technologies(self):
-        """Skills should be languages/frameworks, not infrastructure."""
-        result = extract_skills(RESUME_TEXT)
-        # Docker and Kubernetes are technologies, not skills
-        assert "Docker" not in result
-        assert "Kubernetes" not in result
-
-
-class TestExtractTechnologies:
-    def test_finds_postgresql_in_resume(self):
-        result = extract_technologies(RESUME_TEXT)
-        assert "PostgreSQL" in result
-
-    def test_finds_docker_in_resume(self):
-        result = extract_technologies(RESUME_TEXT)
-        assert "Docker" in result
-
-    def test_finds_kubernetes_in_resume(self):
-        result = extract_technologies(RESUME_TEXT)
-        assert "Kubernetes" in result
-
-    def test_finds_aws_in_resume(self):
-        result = extract_technologies(RESUME_TEXT)
-        assert "AWS" in result
-
-    def test_finds_postgresql_in_job_posting(self):
-        result = extract_technologies(JOB_POSTING_TEXT)
-        assert "PostgreSQL" in result
-
-    def test_finds_docker_in_job_posting(self):
-        result = extract_technologies(JOB_POSTING_TEXT)
-        assert "Docker" in result
-
-    def test_returns_list(self):
-        result = extract_technologies(RESUME_TEXT)
-        assert isinstance(result, list)
-
-    def test_no_duplicates(self):
-        text = "Using Docker and Docker containers with Docker Compose"
-        result = extract_technologies(text)
-        assert result.count("Docker") == 1
-
-    def test_empty_text_returns_empty_list(self):
-        result = extract_technologies("")
-        assert result == []
-
-    def test_does_not_include_programming_languages(self):
-        """Technologies should be infra/platforms, not programming languages."""
-        result = extract_technologies(RESUME_TEXT)
-        assert "Python" not in result
-        assert "React" not in result
-
-
-class TestExtractSoftSkills:
-    def test_finds_communication_in_resume(self):
-        result = extract_soft_skills(RESUME_TEXT)
-        assert "communication" in [s.lower() for s in result]
-
-    def test_finds_leadership_in_resume(self):
-        result = extract_soft_skills(RESUME_TEXT)
-        assert "leadership" in [s.lower() for s in result]
-
-    def test_finds_teamwork_in_job_posting(self):
-        result = extract_soft_skills(JOB_POSTING_TEXT)
-        assert any("teamwork" in s.lower() or "team" in s.lower() for s in result)
-
-    def test_returns_list(self):
-        result = extract_soft_skills(RESUME_TEXT)
-        assert isinstance(result, list)
-
-    def test_no_duplicates(self):
-        text = "communication skills, strong communication, excellent communication"
-        result = extract_soft_skills(text)
-        lower = [s.lower() for s in result]
-        assert lower.count("communication") == 1
-
-    def test_empty_text_returns_empty_list(self):
-        result = extract_soft_skills("")
-        assert result == []
-
+    def test_finds_skills_in_job_posting(self):
+        result = extract_skills(JOB_POSTING_TEXT)
+        names = [s["name"] for s in result]
+        assert "Python" in names
+        assert "Django" in names
+        assert "Docker" in names
 
 
 class TestExtractFromDocuments:
-    def test_returns_correct_structure(self):
+    def test_returns_skills_key_with_typed_objects(self):
         result = extract_from_documents(RESUME_TEXT)
         assert "skills" in result
-        assert "technologies" in result
-        assert "soft_skills" in result
-
-    def test_all_values_are_lists(self):
-        result = extract_from_documents(RESUME_TEXT)
         assert isinstance(result["skills"], list)
-        assert isinstance(result["technologies"], list)
-        assert isinstance(result["soft_skills"], list)
+        for item in result["skills"]:
+            assert "name" in item
+            assert "type" in item
 
-    def test_returns_empty_result_for_no_documents_sentinel(self):
+    def test_no_technologies_or_soft_skills_keys(self):
+        result = extract_from_documents(RESUME_TEXT)
+        assert "technologies" not in result
+        assert "soft_skills" not in result
+
+    def test_returns_empty_for_no_documents_sentinel(self):
         result = extract_from_documents("No previewable documents found.")
-        assert result == {
-            "skills": [],
-            "technologies": [],
-            "soft_skills": [],
-        }
+        assert result == {"skills": []}
 
-    def test_finds_skills_in_resume(self):
+    def test_finds_skills_across_all_types(self):
         result = extract_from_documents(RESUME_TEXT)
-        assert "Python" in result["skills"]
-
-    def test_finds_technologies_in_resume(self):
-        result = extract_from_documents(RESUME_TEXT)
-        assert "Docker" in result["technologies"]
-
-    def test_finds_soft_skills_in_resume(self):
-        result = extract_from_documents(RESUME_TEXT)
-        assert any("communication" in s.lower() for s in result["soft_skills"])
-
-    def test_works_on_job_posting(self):
-        result = extract_from_documents(JOB_POSTING_TEXT)
-        assert "Python" in result["skills"]
-        assert "Docker" in result["technologies"]
+        types_found = {s["type"] for s in result["skills"]}
+        assert "Programming Languages" in types_found
+        assert "DevOps & Infrastructure" in types_found
 
     def test_does_not_call_external_api(self):
-        """
-        NLP extraction must work completely offline — no HTTP calls.
-        This is the core motivation for switching from Claude.
-        """
         import socket
         original_getaddrinfo = socket.getaddrinfo
 
         def block_network(*args, **kwargs):
-            raise OSError("Network access blocked — NLP extraction must be offline")
+            raise OSError("Network access blocked")
 
         socket.getaddrinfo = block_network
         try:
