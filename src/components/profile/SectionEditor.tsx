@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { patchSection } from '../../api/profile'
 import type { Experience, Activity, Education, Certification } from '../../api/profile'
+import type { TypedSkill } from '../../api/extraction'
 
 interface Props {
   section: string
@@ -139,23 +140,37 @@ export default function SectionEditor({ section, data, onSave, onCancel }: Props
   }
 
   if (section === 'skills') {
-    const skills = value as string[]
+    const skills = value as TypedSkill[]
+    const skillTypes = [
+      "Programming Languages", "Frontend", "Backend", "Mobile",
+      "Data & ML", "Databases", "Cloud Services", "DevOps & Infrastructure",
+      "Security", "Testing & Quality", "Developer Tools", "Specialty",
+      "Leadership & Management", "Interpersonal", "Problem Solving & Process",
+    ]
     return (
       <div className="section-editor">
         <div className="editor-chips">
           {skills.map((s, i) => (
             <div key={i} className="editor-chip-row">
               <input
-                value={s}
-                onChange={e => { const next = [...skills]; next[i] = e.target.value; setValue(next) }}
+                value={s.name}
+                onChange={e => { const next = [...skills]; next[i] = { ...s, name: e.target.value }; setValue(next) }}
                 placeholder="Skill name"
                 className="editor-chip-input"
               />
+              <select
+                value={s.type}
+                onChange={e => { const next = [...skills]; next[i] = { ...s, type: e.target.value }; setValue(next) }}
+                className="editor-type-select"
+              >
+                <option value="">Select type...</option>
+                {skillTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
               <button className="editor-remove" onClick={() => setValue(skills.filter((_, j) => j !== i))}>x</button>
             </div>
           ))}
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={() => setValue([...skills, ''])}>+ Add Skill</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => setValue([...skills, { name: '', type: '' }])}>+ Add Skill</button>
         {actions}
       </div>
     )
