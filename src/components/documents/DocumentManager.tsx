@@ -14,12 +14,10 @@ import {
   syncDocuments,
 } from '../../api/documents'
 import { analyzeDocuments } from '../../api/extraction'
-import type { ExtractionResult, SelectionState } from '../../api/extraction'
+import type { ExtractionResult, SelectionState, TypedSkill } from '../../api/extraction'
 import { fetchProfile, patchSection } from '../../api/profile'
 import { fetchTags, createTag, deleteTag } from '../../api/tags'
 import type { DocumentMeta } from '../../api/documents'
-
-const CATEGORIES = ['skills', 'technologies', 'soft_skills'] as const
 
 export default function DocumentManager() {
   const [documents, setDocuments] = useState<DocumentMeta[]>([])
@@ -37,7 +35,7 @@ export default function DocumentManager() {
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null)
   const [extractionSelection, setExtractionSelection] = useState<SelectionState>({})
   const [extractionLoading, setExtractionLoading] = useState(false)
-  const [profileSkills, setProfileSkills] = useState<string[]>([])
+  const [profileSkills, setProfileSkills] = useState<TypedSkill[]>([])
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -104,7 +102,7 @@ export default function DocumentManager() {
   const handleAnalyze = async () => {
     setExtractionLoading(true)
     try {
-      let skills: string[] = []
+      let skills: TypedSkill[] = []
       try {
         const profile = await fetchProfile()
         skills = profile.skills ?? []
@@ -114,12 +112,10 @@ export default function DocumentManager() {
       setProfileSkills(skills)
       setExtractionResult(data)
 
+      const profileNames = new Set(skills.map(s => s.name))
       const sel: SelectionState = {}
-      for (const key of CATEGORIES) {
-        sel[key] = {}
-        for (const item of data[key]) {
-          sel[key][item] = skills.includes(item)
-        }
+      for (const skill of data.skills) {
+        sel[skill.name] = profileNames.has(skill.name)
       }
       setExtractionSelection(sel)
     } catch {
@@ -129,29 +125,27 @@ export default function DocumentManager() {
     }
   }
 
-  const handleToggle = (category: string, item: string) => {
+  const handleToggle = (name: string) => {
     setExtractionSelection(prev => ({
       ...prev,
-      [category]: {
-        ...prev[category],
-        [item]: !prev[category]?.[item],
-      },
+      [name]: !prev[name],
     }))
   }
 
   const handleAccept = async () => {
     if (!extractionResult) return
-    const updatedSkills = new Set(profileSkills)
-    for (const key of CATEGORIES) {
-      for (const item of extractionResult[key]) {
-        if (extractionSelection[key]?.[item]) {
-          updatedSkills.add(item)
-        } else {
-          updatedSkills.delete(item)
-        }
+    const updatedSkills = new Map<string, TypedSkill>()
+    for (const s of profileSkills) {
+      updatedSkills.set(s.name, s)
+    }
+    for (const skill of extractionResult.skills) {
+      if (extractionSelection[skill.name]) {
+        updatedSkills.set(skill.name, skill)
+      } else {
+        updatedSkills.delete(skill.name)
       }
     }
-    await patchSection('skills', [...updatedSkills])
+    await patchSection('skills', [...updatedSkills.values()])
     setExtractionResult(null)
   }
 

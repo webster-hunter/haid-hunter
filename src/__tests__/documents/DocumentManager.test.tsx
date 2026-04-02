@@ -4,9 +4,10 @@ import DocumentManager from '../../components/documents/DocumentManager'
 
 const emptyProfile = { summary: '', skills: [], experience: [], activities: [], education: [], certifications: [] }
 const extractionResult = {
-  skills: ['Python'],
-  technologies: ['Docker'],
-  soft_skills: [],
+  skills: [
+    { name: 'Python', type: 'Programming Languages' },
+    { name: 'Docker', type: 'DevOps & Infrastructure' },
+  ],
 }
 
 function makeFetch(overrides: Record<string, unknown> = {}) {
