@@ -33,10 +33,13 @@ class AnalyzeRequest(BaseModel):
     document_ids: list[str] = []
 
 
+class TypedSkillModel(BaseModel):
+    name: str
+    type: str
+
+
 class AcceptSuggestionsRequest(BaseModel):
-    skills: list[str] = []
-    technologies: list[str] = []
-    soft_skills: list[str] = []
+    skills: list[TypedSkillModel] = []
 
 
 @router.post("/analyze")
