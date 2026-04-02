@@ -14,7 +14,7 @@ logging.basicConfig(
 from backend.config import DOCUMENTS_DIR, DATA_DIR
 from backend.routers.documents import router as documents_router
 from backend.routers.tags import router as tags_router
-from backend.routers.profile import router as profile_router
+from backend.routers.profile import router as profile_router, skills_router
 from backend.routers.applications import router as applications_router
 from backend.routers.settings import router as settings_router
 from backend.routers.tasks import router as tasks_router
@@ -49,6 +49,7 @@ app.include_router(settings_router)
 app.include_router(tasks_router)
 app.include_router(dashboard_router)
 app.include_router(extraction_router)
+app.include_router(skills_router)
 
 
 @app.on_event("startup")

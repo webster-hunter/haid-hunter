@@ -38,7 +38,10 @@ def test_patch_section(tmp_path):
     setup_test_env(tmp_path)
     client = TestClient(app)
     client.get("/api/profile")  # init
-    response = client.patch("/api/profile/skills", json=["Python", "TypeScript"])
+    response = client.patch("/api/profile/skills", json=[
+        {"name": "Python", "type": "Programming Languages"},
+        {"name": "TypeScript", "type": "Programming Languages"},
+    ])
     assert response.status_code == 200
     assert len(response.json()["skills"]) == 2
 
@@ -58,11 +61,19 @@ def test_patch_skills_rejects_non_list(tmp_path):
     assert response.status_code == 422
 
 
-def test_patch_skills_rejects_non_strings(tmp_path):
+def test_patch_skills_rejects_missing_type(tmp_path):
     setup_test_env(tmp_path)
     client = TestClient(app)
     client.get("/api/profile")  # init
     response = client.patch("/api/profile/skills", json=[{"name": "Python"}])
+    assert response.status_code == 422
+
+
+def test_patch_skills_rejects_plain_strings(tmp_path):
+    setup_test_env(tmp_path)
+    client = TestClient(app)
+    client.get("/api/profile")  # init
+    response = client.patch("/api/profile/skills", json=["Python", "TypeScript"])
     assert response.status_code == 422
 
 

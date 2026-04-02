@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from threading import Lock
 
+from backend.services.skill_definitions import SKILLS
+
 VALID_SECTIONS = {"summary", "skills", "experience", "activities", "education", "certifications"}
 
 EMPTY_PROFILE = {
@@ -14,6 +16,19 @@ EMPTY_PROFILE = {
 }
 
 
+def _migrate_skills(skills: list) -> list[dict]:
+    """Convert plain string skills to typed objects. Drop unknowns."""
+    if not skills:
+        return []
+    if isinstance(skills[0], dict):
+        return skills
+    result = []
+    for s in skills:
+        if isinstance(s, str) and s in SKILLS:
+            result.append({"name": s, "type": SKILLS[s]})
+    return result
+
+
 class ProfileService:
     def __init__(self, profile_path: Path):
         self.profile_path = profile_path
@@ -23,7 +38,9 @@ class ProfileService:
         with self._lock:
             if not self.profile_path.exists():
                 self._write(dict(EMPTY_PROFILE))
-            return json.loads(self.profile_path.read_text())
+            profile = json.loads(self.profile_path.read_text())
+            profile["skills"] = _migrate_skills(profile.get("skills", []))
+            return profile
 
     def put(self, profile: dict):
         with self._lock:

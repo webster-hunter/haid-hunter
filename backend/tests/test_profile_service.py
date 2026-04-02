@@ -38,10 +38,13 @@ def test_put_replaces_profile(tmp_path):
 def test_patch_section(tmp_path):
     profile_path = tmp_path / ".profile.json"
     service = ProfileService(profile_path)
-    service.patch("skills", ["Python", "TypeScript"])
+    service.patch("skills", [
+        {"name": "Python", "type": "Programming Languages"},
+        {"name": "TypeScript", "type": "Programming Languages"},
+    ])
     profile = service.get()
     assert len(profile["skills"]) == 2
-    assert profile["skills"][0] == "Python"
+    assert profile["skills"][0] == {"name": "Python", "type": "Programming Languages"}
 
 
 def test_patch_invalid_section(tmp_path):

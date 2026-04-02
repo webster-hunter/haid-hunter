@@ -3,10 +3,23 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, TypeAdapter, ValidationError, field_validator
 from backend.config import PROFILE_PATH
 from backend.services.profile import ProfileService
+from backend.services.skill_definitions import SKILL_TYPES
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
+
+
+class TypedSkillModel(BaseModel):
+    name: str
+    type: str
+
+    @field_validator("type")
+    @classmethod
+    def valid_type(cls, v: str) -> str:
+        if v not in SKILL_TYPES:
+            raise ValueError(f"Invalid skill type: {v}")
+        return v
 
 
 class ExperienceEntry(BaseModel):
@@ -43,7 +56,7 @@ class CertificationEntry(BaseModel):
 
 class ProfileRequest(BaseModel):
     summary: str = ""
-    skills: list[str] = []
+    skills: list[TypedSkillModel] = []
     experience: list[ExperienceEntry] = []
     activities: list[ActivityEntry] = []
     education: list[EducationEntry] = []
@@ -58,7 +71,7 @@ class ProfileRequest(BaseModel):
 
     @field_validator("skills")
     @classmethod
-    def max_skills(cls, v: list[str]) -> list[str]:
+    def max_skills(cls, v: list) -> list:
         if len(v) > 100:
             raise ValueError("Max 100 skills")
         return v
@@ -94,7 +107,7 @@ async def put_profile(body: ProfileRequest):
 
 _SECTION_VALIDATORS = {
     "summary": TypeAdapter(str),
-    "skills": TypeAdapter(list[str]),
+    "skills": TypeAdapter(list[TypedSkillModel]),
     "experience": TypeAdapter(list[ExperienceEntry]),
     "activities": TypeAdapter(list[ActivityEntry]),
     "education": TypeAdapter(list[EducationEntry]),
@@ -123,3 +136,11 @@ async def patch_section(section: str, request: Request):
         return result
     except KeyError:
         raise HTTPException(status_code=400, detail=f"Invalid section: {section}")
+
+
+skills_router = APIRouter(prefix="/api/skills", tags=["skills"])
+
+
+@skills_router.get("/types")
+async def get_skill_types():
+    return SKILL_TYPES

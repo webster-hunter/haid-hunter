@@ -64,7 +64,8 @@ def test_dashboard_returns_profile(tmp_path):
     assert response.status_code == 200
     profile = response.json()["profile"]
     assert "Test engineer" in profile["summary"]
-    assert profile["skills"] == ["Python", "React", "TypeScript", "Go", "Rust"]
+    skill_names = [s["name"] for s in profile["skills"]]
+    assert skill_names == ["Python", "React", "TypeScript", "Go", "Rust"]
     assert "Senior Dev at Acme" in profile["current_role"]
 
 
