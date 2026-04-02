@@ -4,15 +4,19 @@ import ExtractionResultsPanel from '../../components/documents/ExtractionResults
 import type { ExtractionResult, SelectionState } from '../../api/extraction'
 
 const fullResult: ExtractionResult = {
-  skills: ['Python', 'React'],
-  technologies: ['Docker'],
-  soft_skills: ['communication'],
+  skills: [
+    { name: 'Python', type: 'Programming Languages' },
+    { name: 'React', type: 'Frontend' },
+    { name: 'Docker', type: 'DevOps & Infrastructure' },
+    { name: 'communication', type: 'Interpersonal' },
+  ],
 }
 
 const allSelected: SelectionState = {
-  skills: { Python: true, React: true },
-  technologies: { Docker: true },
-  soft_skills: { communication: true },
+  Python: true,
+  React: true,
+  Docker: true,
+  communication: true,
 }
 
 const baseProps = {
@@ -29,7 +33,7 @@ beforeEach(() => {
 })
 
 describe('ExtractionResultsPanel', () => {
-  it('renders chips for each category', () => {
+  it('renders chips for each skill', () => {
     render(<ExtractionResultsPanel {...baseProps} />)
     expect(screen.getByText('Python')).toBeInTheDocument()
     expect(screen.getByText('React')).toBeInTheDocument()
@@ -37,18 +41,27 @@ describe('ExtractionResultsPanel', () => {
     expect(screen.getByText('communication')).toBeInTheDocument()
   })
 
-  it('calls onToggle when a chip is clicked', () => {
+  it('renders type headings', () => {
+    render(<ExtractionResultsPanel {...baseProps} />)
+    expect(screen.getByText('Programming Languages')).toBeInTheDocument()
+    expect(screen.getByText('Frontend')).toBeInTheDocument()
+    expect(screen.getByText('DevOps & Infrastructure')).toBeInTheDocument()
+    expect(screen.getByText('Interpersonal')).toBeInTheDocument()
+  })
+
+  it('calls onToggle with skill name when a chip is clicked', () => {
     const onToggle = vi.fn()
     render(<ExtractionResultsPanel {...baseProps} onToggle={onToggle} />)
     fireEvent.click(screen.getByText('Python'))
-    expect(onToggle).toHaveBeenCalledWith('skills', 'Python')
+    expect(onToggle).toHaveBeenCalledWith('Python')
   })
 
   it('applies deselected class to toggled-off chips', () => {
     const selection: SelectionState = {
-      skills: { Python: false, React: true },
-      technologies: { Docker: true },
-            soft_skills: { communication: true },
+      Python: false,
+      React: true,
+      Docker: true,
+      communication: true,
     }
     render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
     expect(screen.getByText('Python')).toHaveClass('deselected')
@@ -77,16 +90,17 @@ describe('ExtractionResultsPanel', () => {
   })
 
   it('shows No suggestions found when result is empty', () => {
-    const empty: ExtractionResult = { skills: [], technologies: [], soft_skills: [] }
+    const empty: ExtractionResult = { skills: [] }
     render(<ExtractionResultsPanel {...baseProps} result={empty} selection={{}} />)
     expect(screen.getByText('No suggestions found.')).toBeInTheDocument()
   })
 
   it('profile items passed as selected=true start without deselected class', () => {
     const selection: SelectionState = {
-      skills: { Python: true, React: false },
-      technologies: { Docker: true },
-            soft_skills: { communication: true },
+      Python: true,
+      React: false,
+      Docker: true,
+      communication: true,
     }
     render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
     expect(screen.getByText('Python')).not.toHaveClass('deselected')
@@ -96,14 +110,15 @@ describe('ExtractionResultsPanel', () => {
     const onToggle = vi.fn()
     render(<ExtractionResultsPanel {...baseProps} onToggle={onToggle} />)
     fireEvent.click(screen.getByText('Python'))
-    expect(onToggle).toHaveBeenCalledWith('skills', 'Python')
+    expect(onToggle).toHaveBeenCalledWith('Python')
   })
 
   it('deselecting a previously-selected item applies deselected class', () => {
     const selection: SelectionState = {
-      skills: { Python: false, React: true },
-      technologies: { Docker: true },
-            soft_skills: { communication: true },
+      Python: false,
+      React: true,
+      Docker: true,
+      communication: true,
     }
     render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
     expect(screen.getByText('Python')).toHaveClass('deselected')
