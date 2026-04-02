@@ -40,7 +40,7 @@ describe('SectionEditor', () => {
 
   describe('skills', () => {
     it('renders text inputs for each skill', () => {
-      render(<SectionEditor section="skills" data={['React', 'TypeScript']} onSave={onSave} onCancel={onCancel} />)
+      render(<SectionEditor section="skills" data={[{ name: 'React', type: 'Frontend' }, { name: 'TypeScript', type: 'Programming Languages' }]} onSave={onSave} onCancel={onCancel} />)
       const inputs = screen.getAllByPlaceholderText('Skill name')
       expect(inputs).toHaveLength(2)
       expect(inputs[0]).toHaveValue('React')
@@ -48,7 +48,7 @@ describe('SectionEditor', () => {
     })
 
     it('can add a new skill', () => {
-      render(<SectionEditor section="skills" data={['React']} onSave={onSave} onCancel={onCancel} />)
+      render(<SectionEditor section="skills" data={[{ name: 'React', type: 'Frontend' }]} onSave={onSave} onCancel={onCancel} />)
       fireEvent.click(screen.getByText('+ Add Skill'))
       expect(screen.getAllByPlaceholderText('Skill name')).toHaveLength(2)
     })
