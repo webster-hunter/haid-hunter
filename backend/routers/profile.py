@@ -52,6 +52,7 @@ class CertificationEntry(BaseModel):
     name: str
     issuer: str
     date: str
+    in_progress: bool = False
 
 
 class ProfileRequest(BaseModel):

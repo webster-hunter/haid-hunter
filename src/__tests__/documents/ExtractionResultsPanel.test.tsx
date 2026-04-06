@@ -23,6 +23,7 @@ const baseProps = {
   result: fullResult,
   selection: allSelected,
   onToggle: vi.fn(),
+  onToggleAll: vi.fn(),
   onAccept: vi.fn(),
   onReanalyze: vi.fn(),
   onDismiss: vi.fn(),
@@ -123,5 +124,31 @@ describe('ExtractionResultsPanel', () => {
     render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
     expect(screen.getByText('Python')).toHaveClass('deselected')
     expect(screen.getByText('React')).not.toHaveClass('deselected')
+  })
+
+  it('shows Deselect All when all are selected', () => {
+    render(<ExtractionResultsPanel {...baseProps} />)
+    expect(screen.getByText('Deselect All')).toBeInTheDocument()
+  })
+
+  it('shows Select All when not all are selected', () => {
+    const selection: SelectionState = { Python: true, React: false, Docker: true, communication: true }
+    render(<ExtractionResultsPanel {...baseProps} selection={selection} />)
+    expect(screen.getByText('Select All')).toBeInTheDocument()
+  })
+
+  it('calls onToggleAll(false) when Deselect All is clicked', () => {
+    const onToggleAll = vi.fn()
+    render(<ExtractionResultsPanel {...baseProps} onToggleAll={onToggleAll} />)
+    fireEvent.click(screen.getByText('Deselect All'))
+    expect(onToggleAll).toHaveBeenCalledWith(false)
+  })
+
+  it('calls onToggleAll(true) when Select All is clicked', () => {
+    const onToggleAll = vi.fn()
+    const selection: SelectionState = { Python: false, React: false, Docker: false, communication: false }
+    render(<ExtractionResultsPanel {...baseProps} selection={selection} onToggleAll={onToggleAll} />)
+    fireEvent.click(screen.getByText('Select All'))
+    expect(onToggleAll).toHaveBeenCalledWith(true)
   })
 })

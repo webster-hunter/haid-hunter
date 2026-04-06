@@ -63,6 +63,7 @@ async def get_document_content(file_id: str, download: bool = False):
     return Response(
         content=content,
         media_type=meta["mime_type"],
+        headers={"Content-Disposition": "inline"},
     )
 
 

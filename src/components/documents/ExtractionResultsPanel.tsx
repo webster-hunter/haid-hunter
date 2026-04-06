@@ -4,6 +4,7 @@ interface ExtractionResultsPanelProps {
   result: ExtractionResult
   selection: SelectionState
   onToggle: (name: string) => void
+  onToggleAll: (selectAll: boolean) => void
   onAccept: () => void
   onReanalyze: () => void
   onDismiss: () => void
@@ -13,6 +14,7 @@ export default function ExtractionResultsPanel({
   result,
   selection,
   onToggle,
+  onToggleAll,
   onAccept,
   onReanalyze,
   onDismiss,
@@ -33,8 +35,18 @@ export default function ExtractionResultsPanel({
     grouped[skill.type].push(skill)
   }
 
+  const allSelected = result.skills.every(s => selection[s.name])
+
   return (
     <div className="extraction-panel">
+      <div className="extraction-toggle-all">
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={() => onToggleAll(!allSelected)}
+        >
+          {allSelected ? 'Deselect All' : 'Select All'}
+        </button>
+      </div>
       {Object.entries(grouped).map(([type, skills]) => (
         <div key={type} className="extraction-category">
           <h4>{type}</h4>

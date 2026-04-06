@@ -171,7 +171,7 @@ describe('SectionEditor', () => {
 
   describe('certifications', () => {
     it('renders certification fields with labels', () => {
-      const certs = [{ name: 'AWS SAA', issuer: 'Amazon', date: '2023-01' }]
+      const certs = [{ name: 'AWS SAA', issuer: 'Amazon', date: '2023-01', in_progress: false }]
       render(<SectionEditor section="certifications" data={certs} onSave={onSave} onCancel={onCancel} />)
       expect(screen.getByText('Certification Name')).toBeInTheDocument()
       expect(screen.getByText('Issuer')).toBeInTheDocument()
@@ -181,11 +181,33 @@ describe('SectionEditor', () => {
     })
 
     it('validates date format on save', async () => {
-      const badCerts = [{ name: 'AWS', issuer: 'Amazon', date: 'nope' }]
+      const badCerts = [{ name: 'AWS', issuer: 'Amazon', date: 'nope', in_progress: false }]
       render(<SectionEditor section="certifications" data={badCerts} onSave={onSave} onCancel={onCancel} />)
       fireEvent.click(screen.getByText('Save'))
       expect(await screen.findByText('Use YYYY-MM')).toBeInTheDocument()
       expect(patchSection).not.toHaveBeenCalled()
+    })
+
+    it('hides date field and skips date validation when in_progress is checked', async () => {
+      const certs = [{ name: 'CKA', issuer: 'CNCF', date: '', in_progress: true }]
+      render(<SectionEditor section="certifications" data={certs} onSave={onSave} onCancel={onCancel} />)
+      expect(screen.queryByPlaceholderText('YYYY-MM')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByText('Save'))
+      await waitFor(() => expect(patchSection).toHaveBeenCalled())
+    })
+
+    it('sorts in-progress certs before completed ones', async () => {
+      const items = [
+        { name: 'Done', issuer: 'A', date: '2023-06', in_progress: false },
+        { name: 'Ongoing', issuer: 'B', date: '', in_progress: true },
+      ]
+      render(<SectionEditor section="certifications" data={items} onSave={onSave} onCancel={onCancel} />)
+      fireEvent.click(screen.getByText('Save'))
+      await waitFor(() => {
+        const sorted = (patchSection as ReturnType<typeof vi.fn>).mock.calls[0][1]
+        expect(sorted[0].name).toBe('Ongoing')
+        expect(sorted[1].name).toBe('Done')
+      })
     })
   })
 
@@ -224,8 +246,8 @@ describe('SectionEditor', () => {
 
     it('sorts certifications most recent first', async () => {
       const items = [
-        { name: 'Old', issuer: 'A', date: '2020-01' },
-        { name: 'New', issuer: 'B', date: '2023-06' },
+        { name: 'Old', issuer: 'A', date: '2020-01', in_progress: false },
+        { name: 'New', issuer: 'B', date: '2023-06', in_progress: false },
       ]
       render(<SectionEditor section="certifications" data={items} onSave={onSave} onCancel={onCancel} />)
       fireEvent.click(screen.getByText('Save'))

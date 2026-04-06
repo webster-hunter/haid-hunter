@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
+import type { TypedSkill } from '../../api/profile'
 
 interface ProfileBannerProps {
   summary: string
-  skills: string[]
+  skills: TypedSkill[]
   currentRole: string | null
 }
 
@@ -32,7 +33,7 @@ export function ProfileBanner({ summary, skills, currentRole }: ProfileBannerPro
       {visibleSkills.length > 0 && (
         <div className="profile-banner-skills">
           {visibleSkills.map((s) => (
-            <span key={s} className="skill-pill">{s}</span>
+            <span key={s.name} className="skill-pill">{s.name}</span>
           ))}
           {overflow > 0 && <span className="skill-pill">+{overflow} more</span>}
         </div>

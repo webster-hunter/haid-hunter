@@ -6,7 +6,12 @@ import Dashboard from '../../components/home/Dashboard'
 const mockDashboardData = {
   profile: {
     summary: 'Full-stack engineer with 8 years experience',
-    skills: ['TypeScript', 'React', 'Python', 'Go'],
+    skills: [
+      { name: 'TypeScript', type: 'Programming Languages' },
+      { name: 'React', type: 'Frontend' },
+      { name: 'Python', type: 'Programming Languages' },
+      { name: 'Go', type: 'Programming Languages' },
+    ],
     current_role: 'Senior Dev at Acme (2021 - Present)',
   },
   documents: {

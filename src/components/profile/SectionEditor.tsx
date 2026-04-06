@@ -22,7 +22,10 @@ function sortByDate<T extends { start_date: string; end_date: string | null }>(i
 }
 
 function sortCertsByDate(items: Certification[]): Certification[] {
-  return [...items].sort((a, b) => b.date.localeCompare(a.date))
+  return [...items].sort((a, b) => {
+    if (a.in_progress !== b.in_progress) return a.in_progress ? -1 : 1
+    return b.date.localeCompare(a.date)
+  })
 }
 
 function sortActivities(items: Activity[]): Activity[] {
@@ -90,7 +93,7 @@ export default function SectionEditor({ section, data, onSave, onCancel }: Props
       const items = value as Certification[]
       items.forEach((item, i) => {
         if (!item.name.trim()) errs[`cert-${i}-name`] = 'Required'
-        if (item.date && !DATE_PATTERN.test(item.date)) errs[`cert-${i}-date`] = 'Use YYYY-MM'
+        if (!item.in_progress && item.date && !DATE_PATTERN.test(item.date)) errs[`cert-${i}-date`] = 'Use YYYY-MM'
       })
     }
 
@@ -378,13 +381,23 @@ export default function SectionEditor({ section, data, onSave, onCancel }: Props
               <Field label="Issuer">
                 <input value={item.issuer} onChange={e => { items[i] = { ...item, issuer: e.target.value }; setValue([...items]) }} placeholder="Issuer" />
               </Field>
-              <Field label="Date" error={errors[`cert-${i}-date`]}>
-                <input value={item.date} onChange={e => { items[i] = { ...item, date: e.target.value }; setValue([...items]) }} placeholder="YYYY-MM" />
-              </Field>
+              {!item.in_progress && (
+                <Field label="Date" error={errors[`cert-${i}-date`]}>
+                  <input value={item.date} onChange={e => { items[i] = { ...item, date: e.target.value }; setValue([...items]) }} placeholder="YYYY-MM" />
+                </Field>
+              )}
+              <label className="editor-checkbox">
+                <input
+                  type="checkbox"
+                  checked={item.in_progress}
+                  onChange={e => { items[i] = { ...item, in_progress: e.target.checked, date: e.target.checked ? '' : item.date }; setValue([...items]) }}
+                />
+                In progress
+              </label>
             </div>
           </div>
         ))}
-        <button className="btn btn-secondary btn-sm" onClick={() => setValue([...items, { name: '', issuer: '', date: '' }])}>+ Add Certification</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => setValue([...items, { name: '', issuer: '', date: '', in_progress: false }])}>+ Add Certification</button>
         {actions}
       </div>
     )

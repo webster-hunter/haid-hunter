@@ -46,6 +46,15 @@ def _get_matcher() -> PhraseMatcher:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+def _title_case(name: str) -> str:
+    """Capitalize first letter of each word, but only for fully-lowercase words.
+    Preserves casing for mixed/upper words like FastAPI, AWS, OAuth2."""
+    return " ".join(
+        word.capitalize() if word.islower() else word
+        for word in name.split()
+    )
+
+
 def extract_skills(text: str) -> list[dict]:
     """Return typed skill objects found in text: [{"name": ..., "type": ...}, ...]"""
     if not text or not text.strip():
@@ -60,7 +69,7 @@ def extract_skills(text: str) -> list[dict]:
         entry = _lower_map.get(span_lower)
         if entry and entry[0] not in seen:
             seen.add(entry[0])
-            results.append({"name": entry[0], "type": entry[1]})
+            results.append({"name": _title_case(entry[0]), "type": entry[1]})
     return sorted(results, key=lambda s: s["name"])
 
 

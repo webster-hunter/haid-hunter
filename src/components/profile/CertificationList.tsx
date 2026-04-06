@@ -7,7 +7,9 @@ export default function CertificationList({ certifications }: { certifications: 
       {certifications.map((c, i) => (
         <div key={i} className="certification-item">
           <strong>{c.name}</strong>{c.issuer ? ` — ${c.issuer}` : ''}
-          <span className="certification-date">{c.date}</span>
+          {c.in_progress
+            ? <span className="certification-in-progress">In Progress</span>
+            : <span className="certification-date">{c.date}</span>}
         </div>
       ))}
     </div>

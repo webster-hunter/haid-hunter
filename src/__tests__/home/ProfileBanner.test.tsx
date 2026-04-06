@@ -9,7 +9,13 @@ describe('ProfileBanner', () => {
       <MemoryRouter>
         <ProfileBanner
           summary="Full-stack engineer with 8 years experience"
-          skills={['TypeScript', 'React', 'Python', 'Go', 'Rust']}
+          skills={[
+            { name: 'TypeScript', type: 'Programming Languages' },
+            { name: 'React', type: 'Frontend' },
+            { name: 'Python', type: 'Programming Languages' },
+            { name: 'Go', type: 'Programming Languages' },
+            { name: 'Rust', type: 'Programming Languages' },
+          ]}
           currentRole="Senior Dev at Acme (2021 - Present)"
         />
       </MemoryRouter>
@@ -23,7 +29,13 @@ describe('ProfileBanner', () => {
       <MemoryRouter>
         <ProfileBanner
           summary="Engineer"
-          skills={['TypeScript', 'React', 'Python', 'Go', 'Rust']}
+          skills={[
+            { name: 'TypeScript', type: 'Programming Languages' },
+            { name: 'React', type: 'Frontend' },
+            { name: 'Python', type: 'Programming Languages' },
+            { name: 'Go', type: 'Programming Languages' },
+            { name: 'Rust', type: 'Programming Languages' },
+          ]}
           currentRole={null}
         />
       </MemoryRouter>

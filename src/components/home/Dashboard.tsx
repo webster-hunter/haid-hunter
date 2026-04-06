@@ -6,6 +6,7 @@ import { StatCard } from './StatCard'
 import { DailyTasks } from './DailyTasks'
 import { ReferralPopover } from './ReferralPopover'
 import { PlaceholderCard } from './PlaceholderCard'
+import type { TypedSkill } from '../../api/profile'
 
 const STATUS_COLORS: Record<string, string> = {
   bookmarked: 'var(--color-muted)',
@@ -18,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 interface DashboardData {
-  profile: { summary: string; skills: string[]; current_role: string | null }
+  profile: { summary: string; skills: TypedSkill[]; current_role: string | null }
   documents: { total: number; by_tag: Record<string, number> }
   applications: {
     total: number

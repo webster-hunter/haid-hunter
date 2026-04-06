@@ -132,6 +132,15 @@ export default function DocumentManager() {
     }))
   }
 
+  const handleToggleAll = (selectAll: boolean) => {
+    if (!extractionResult) return
+    const sel: SelectionState = {}
+    for (const skill of extractionResult.skills) {
+      sel[skill.name] = selectAll
+    }
+    setExtractionSelection(sel)
+  }
+
   const handleAccept = async () => {
     if (!extractionResult) return
     const updatedSkills = new Map<string, TypedSkill>()
@@ -278,6 +287,7 @@ export default function DocumentManager() {
             result={extractionResult}
             selection={extractionSelection}
             onToggle={handleToggle}
+            onToggleAll={handleToggleAll}
             onAccept={handleAccept}
             onReanalyze={handleAnalyze}
             onDismiss={handleDismiss}
