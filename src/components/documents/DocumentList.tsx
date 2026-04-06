@@ -31,10 +31,12 @@ function formatDate(iso: string): string {
 interface DocumentItemProps {
   doc: DocumentMeta
   selected: boolean
+  checked: boolean
   onSelect: (id: string) => void
+  onCheck: (id: string) => void
 }
 
-function DocumentItem({ doc, selected, onSelect }: DocumentItemProps) {
+function DocumentItem({ doc, selected, checked, onSelect, onCheck }: DocumentItemProps) {
   const ext = doc.display_name.split('.').pop()?.toUpperCase() ?? '?'
   const style = getExtStyle(doc.display_name)
 
@@ -43,6 +45,14 @@ function DocumentItem({ doc, selected, onSelect }: DocumentItemProps) {
       className={`document-item${selected ? ' selected' : ''}`}
       onClick={() => onSelect(doc.id)}
     >
+      <input
+        type="checkbox"
+        className="document-checkbox"
+        checked={checked}
+        onChange={e => { e.stopPropagation(); onCheck(doc.id) }}
+        onClick={e => e.stopPropagation()}
+        aria-label={`Select ${doc.display_name}`}
+      />
       <div
         className="file-icon"
         style={{ background: style.bg, color: style.color }}
@@ -72,10 +82,12 @@ function DocumentItem({ doc, selected, onSelect }: DocumentItemProps) {
 interface DocumentListProps {
   documents: DocumentMeta[]
   selectedId: string | null
+  checkedIds: Set<string>
   onSelect: (id: string) => void
+  onCheck: (id: string) => void
 }
 
-export function DocumentList({ documents, selectedId, onSelect }: DocumentListProps) {
+export function DocumentList({ documents, selectedId, checkedIds, onSelect, onCheck }: DocumentListProps) {
   if (!documents.length) {
     return <div className="empty-state">No documents found. Upload a file or sync your documents folder.</div>
   }
@@ -87,7 +99,9 @@ export function DocumentList({ documents, selectedId, onSelect }: DocumentListPr
           key={doc.id}
           doc={doc}
           selected={selectedId === doc.id}
+          checked={checkedIds.has(doc.id)}
           onSelect={onSelect}
+          onCheck={onCheck}
         />
       ))}
     </div>

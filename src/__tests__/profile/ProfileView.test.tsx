@@ -15,12 +15,7 @@ describe('ProfileView', () => {
     expect(await screen.findByTestId('profile-panel')).toBeInTheDocument()
   })
 
-  it('renders interview chat', async () => {
-    render(<ProfileView />)
-    expect(await screen.findByTestId('interview-chat')).toBeInTheDocument()
-  })
-
-  it('renders page title', async () => {
+it('renders page title', async () => {
     render(<ProfileView />)
     expect(await screen.findByText('Profile')).toBeInTheDocument()
   })

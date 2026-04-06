@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from pydantic import BaseModel
 from backend.config import DOCUMENTS_DIR, PROFILE_PATH
 from backend.services.document_reader import read_document_contents
@@ -29,6 +29,10 @@ def get_profile_service() -> ProfileService:
     return _profile_service
 
 
+class AnalyzeRequest(BaseModel):
+    document_ids: list[str] = []
+
+
 class AcceptSuggestionsRequest(BaseModel):
     skills: list[str] = []
     technologies: list[str] = []
@@ -37,11 +41,27 @@ class AcceptSuggestionsRequest(BaseModel):
 
 
 @router.post("/analyze")
-async def analyze_documents():
+async def analyze_documents(
+    body: AnalyzeRequest = Body(default=AnalyzeRequest()),
+):
     service = get_metadata_service()
     metadata = service.read()
-    doc_contents = read_document_contents(service.docs_dir, metadata)
-    logger.info("Running extraction on %d documents", len(metadata.get("files", {})))
+
+    if body.document_ids:
+        all_files = metadata.get("files", {})
+        filtered_files = {
+            fid: meta
+            for fid, meta in all_files.items()
+            if fid in body.document_ids
+        }
+        filtered_metadata = {**metadata, "files": filtered_files}
+    else:
+        filtered_metadata = metadata
+
+    doc_contents = read_document_contents(service.docs_dir, filtered_metadata)
+    logger.info(
+        "Running extraction on %d documents", len(filtered_metadata.get("files", {}))
+    )
     result = extract_from_documents(doc_contents)
     return result
 

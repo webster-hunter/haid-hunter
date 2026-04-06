@@ -5,9 +5,20 @@ interface DocumentToolbarProps {
   onSearchChange: (value: string) => void
   onUpload: (files: File[]) => void
   onSync: () => void
+  checkedCount: number
+  onAnalyze: () => void
+  extractionLoading: boolean
 }
 
-export function DocumentToolbar({ search, onSearchChange, onUpload, onSync }: DocumentToolbarProps) {
+export function DocumentToolbar({
+  search,
+  onSearchChange,
+  onUpload,
+  onSync,
+  checkedCount,
+  onAnalyze,
+  extractionLoading,
+}: DocumentToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,6 +28,12 @@ export function DocumentToolbar({ search, onSearchChange, onUpload, onSync }: Do
       e.target.value = ''
     }
   }
+
+  const analyzeLabel = extractionLoading
+    ? 'Analyzing…'
+    : checkedCount === 0
+      ? 'Analyze All'
+      : `Analyze Selected (${checkedCount})`
 
   return (
     <div className="document-toolbar">
@@ -42,6 +59,13 @@ export function DocumentToolbar({ search, onSearchChange, onUpload, onSync }: Do
       </button>
       <button className="btn btn-secondary" onClick={onSync}>
         Sync
+      </button>
+      <button
+        className="btn btn-accent"
+        onClick={onAnalyze}
+        disabled={extractionLoading}
+      >
+        {analyzeLabel}
       </button>
     </div>
   )

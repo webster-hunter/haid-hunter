@@ -43,3 +43,23 @@ def test_returns_fallback_when_no_documents(tmp_path):
     docs_dir.mkdir()
     result = read_document_contents(docs_dir, {"files": {}})
     assert result == "No previewable documents found."
+
+
+def test_does_not_truncate_long_text_files(tmp_path):
+    docs_dir = tmp_path / "documents"
+    docs_dir.mkdir()
+    # Write a file with content well over the old 5000-char limit
+    long_text = "Python " * 1500  # ~10 500 chars
+    (docs_dir / "abc_long.txt").write_text(long_text)
+    metadata = {
+        "files": {
+            "abc": {
+                "original_name": "long.txt",
+                "stored_name": "abc_long.txt",
+                "mime_type": "text/plain",
+            }
+        }
+    }
+    result = read_document_contents(docs_dir, metadata)
+    # All 1500 occurrences of "Python" must be present — not cut off at 5000 chars
+    assert result.count("Python") == 1500
